@@ -1,5 +1,5 @@
 class Sprite:
-    def __init__(self,id:str,img:str,owner:str='none',x=0,y=0,anchor_x=0.5,anchor_y=0.5) -> None:
+    def __init__(self,id:str,img:str,owner:str='none',x=0,y=0,anchor_x=0.5,anchor_y=0.5,type=None) -> None:
         self.id = id
         self.owner = owner
         self.img = img
@@ -7,6 +7,7 @@ class Sprite:
         self.y = y
         self.anchor_x = anchor_x
         self.anchor_y = anchor_y
+        self.type = type
         self.update_records = dict()
         
     def update(self,data:dict):
@@ -28,7 +29,7 @@ class Sprite:
         self.owner = '_destroyed'
         
     def net(self):
-        return {
+        o = {
             'img':self.img,
             'owner': self.owner,
             'anchor_x': self.anchor_x,
@@ -36,6 +37,9 @@ class Sprite:
             'x':self.x,
             'y':self.y,
             'update_records':self.update_records}
+        if self.type:
+            o['type'] = self.type
+        return o
         
 class SpriteManager:
     def __init__(self) -> None:
@@ -45,10 +49,10 @@ class SpriteManager:
     def get_sprite_by_id(self,id):
         return self.sprites.get(id)
         
-    def new_sprite(self,img:str,owner:str='none',x=0,y=0,anchor_x=0.5,anchor_y=0.5):
+    def new_sprite(self,img:str,owner:str='none',x=0,y=0,anchor_x=0.5,anchor_y=0.5,type=None):
         sprite_id = 's'+str(self.next_id)
         self.next_id += 1
-        s = Sprite(sprite_id,img,owner,x,y,anchor_x,anchor_y)
+        s = Sprite(sprite_id,img,owner,x,y,anchor_x,anchor_y,type=type)
         self.sprites[sprite_id] = s
         return s
     

@@ -71,7 +71,7 @@ onMounted(()=>{
     <textarea ref="msg_box" rows="10" cols="30" readonly>{{messages}}</textarea>
   </div>
   {{name}}:
-  <input :value="text_msg" placeholder="输入聊天消息" v-on:input="on_input_msg">
+  <input :value="text_msg" placeholder="输入聊天消息" v-on:input="on_input_msg" @keydown.enter="send_text">
   <button v-on:click="send_text">发送</button>
   <p>{{warning}}</p>
 </template>

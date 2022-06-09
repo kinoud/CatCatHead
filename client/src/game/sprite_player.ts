@@ -1,6 +1,6 @@
 import * as sprite from './sprite'
 import * as player from './player'
-import type { Application } from 'pixi.js'
+import type { Application } from '@pixi/app'
 
 
 export function update(server_data,pixiapp:Application){
@@ -40,7 +40,7 @@ function update_sprites(sprite_pack,pixiapp:Application){
     })
 
     to_remove.forEach((s,_)=>{
-        sprite.remove_sprite(s.id)
+        sprite.remove_sprite(s)
     })
 
     to_add.forEach((s,_)=>{

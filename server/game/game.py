@@ -17,7 +17,7 @@ for i in range(6):
     sprite_manager.new_sprite('cat.png',owner='none',x=x,y=y)
 
 def new_player():
-    mouse = sprite_manager.new_sprite('mouse.png',anchor_x=0,anchor_y=0)
+    mouse = sprite_manager.new_sprite('mouse.png',anchor_x=0,anchor_y=0,type='mouse')
     p = player_manager.new_player(mouse)
     return p
 

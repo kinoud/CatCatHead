@@ -84,7 +84,7 @@ def broadcase_game_state():
 def game_heartbeat():
     while True:
         broadcase_game_state()
-        time.sleep(0.2)
+        time.sleep(0.5)
 
 if __name__=='__main__':
     # print('??')

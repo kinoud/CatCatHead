@@ -1,36 +1,47 @@
 import * as PIXI from 'pixi.js'
 import { get_player_by_id, I, my_id as me } from './player'
 import { emit_player_update } from './comm'
+import {make_clickable,cancel_clickable} from './interaction'
 
-const sprite_pool:Map<string,Sprite> = new Map
+export const id_2_sprite:Map<string,Sprite> = new Map
+const pixi_2_sprite:Map<PIXI.Sprite,Sprite> = new Map
 
 export function get_sprite_by_id(id:string){
-    return sprite_pool.get(id)
+    return id_2_sprite.get(id)
+}
+
+export function get_sprite_by_pixi(pixi:PIXI.Sprite){
+    return pixi_2_sprite.get(pixi)
 }
 
 export function for_each_sprite(func:(sprite:Sprite,id:string)=>void){
-    sprite_pool.forEach(func)
+    id_2_sprite.forEach(func)
 }
 
+let z_index_top = 0
+
 export function new_sprite(id:string,meta:SpriteMeta):Sprite{
-    console.assert(!sprite_pool.has(id))
+    console.assert(!id_2_sprite.has(id))
     const p = new PIXI.Sprite(
         PIXI.Loader.shared.resources[meta.img].texture
         )
+    p.zIndex = z_index_top
+    z_index_top++
     const s = new Sprite(p)
     s.id = id
     s.update(meta)
-    s.pixi = p
-    sprite_pool.set(id,s)
+    id_2_sprite.set(id,s)
+    pixi_2_sprite.set(p,s)
     return s
 }
 
-export function remove_sprite(id:string){
-    sprite_pool.delete(id)
+export function remove_sprite(sprite:Sprite){
+    id_2_sprite.delete(sprite.id)
+    pixi_2_sprite.delete(sprite.pixi)
 }
 
 export function game_loop(){
-    sprite_pool.forEach((v,k)=>{
+    id_2_sprite.forEach((v,k)=>{
 
         const speed = v.owner==me?0.5:0.1
 
@@ -50,6 +61,8 @@ interface UpdateRecords{
     [player_id:string]:number
 }
 
+
+
 export class Sprite{
     public id:string
     public status:string = 'easy'
@@ -59,16 +72,14 @@ export class Sprite{
     public y:number
     public anchor_x:number=0.5
     public anchor_y:number=0.5
-    public update_records:UpdateRecords
+    public update_records:UpdateRecords={}
 
     public owner:string
     public pixi:PIXI.Sprite
 
-    private event_data
-    private dragging:boolean=false
-
 
     public update(data,validate_update_records=false){
+        console.log('update',data)
         if(validate_update_records){
             if(!this.compare_and_set_update_records(data['update_records'])){
                 console.log('refuse')
@@ -79,10 +90,10 @@ export class Sprite{
             this[x] = data[x]
         }
         this.pixi.anchor.set(data['anchor_x'],data['anchor_y'])
-        if(this.owner=='none'){
-            this.pixi.interactive = true
+        if(this['type']=='mouse'){
+            cancel_clickable(this)
         }else{
-            this.pixi.interactive = false
+            make_clickable(this)
         }
     }
 
@@ -97,6 +108,7 @@ export class Sprite{
                 return false
             }
         }
+        if(!(me in update_records)&&(me in this.update_records))return false
         for(let p in update_records){
             this.update_records[p] = update_records[p]
         }
@@ -105,26 +117,6 @@ export class Sprite{
 
     constructor(pixi:PIXI.Sprite){
         this.pixi = pixi
-        this.pixi.interactive = true
-        this.pixi.on('pointerdown',this.on_pointerdown.bind(this))
-        this.pixi.on('pointermove',this.on_pointermove.bind(this))
-        this.pixi.on('pointerup',this.on_pointerup.bind(this))
-        this.pixi.on('pointerupoutside',this.on_pointerup.bind(this))
-    }
-
-    private on_pointerdown(event){
-        this.set_owner(me)
-        this.event_data = event.data;
-        this.pixi.alpha = 0.5;
-        this.dragging = true;
-    }
-
-    private on_pointermove(){
-        if (this.dragging) {
-            const newPosition = this.event_data.getLocalPosition(this.pixi.parent);
-            this.x = newPosition.x;
-            this.y = newPosition.y;
-        }
     }
 
     public set_owner(owner:string){
@@ -140,24 +132,6 @@ export class Sprite{
             q.take_sprite(this)
         }
         
-    }
-
-    private on_pointerup(){
-        this.pixi.alpha = 1;
-        this.dragging = false;
-        // set the interaction data to null
-        this.event_data = null;
-        if(!I().sprites.has(this.id)){
-            console.log('bug')
-        }
-        const p = get_player_by_id(this.owner)
-        p.ts += 1
-        this.update_records[p.id] = p.ts
-        this.owner = 'none'
-        emit_player_update(true)
-        this.owner = me
-        this.set_owner('none')
-        console.log('emit update',I().sprites)
     }
 
     public on(event_type:string, call_back:(any)=>any){
