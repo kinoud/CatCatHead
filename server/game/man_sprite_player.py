@@ -6,7 +6,7 @@ class ManagerOfSpritesAndPlayers:
         self.man_sprites = man_sprites
         self.man_players = man_players
         
-    def update_sprites(self, data,who,ts):
+    def update_sprites(self,data,who,ts):
         for sprite_id, sprite_data in data.items():
             s:Sprite = self.man_sprites.get_sprite_by_id(sprite_id)
             if not s:

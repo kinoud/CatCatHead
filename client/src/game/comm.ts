@@ -16,14 +16,36 @@ export function setup(game_socket){
         return
       }
       game.update(res)
-      setTimeout(emit_player_update, 100);
     })
 }
 
-export function emit_player_update(emergent=false){
+let emit_ready:boolean = true
+let emit_try:boolean = false
+let reset_timer:number
+
+function _emit_player_update(){
+  console.log('emit')
   const player_update = game.get_player_update()
   if(!player_update)return
-  player_update['emergent']=emergent
-  // console.log('send',player_update)
   socket.emit('player update',player_update)
+}
+
+export function emit_player_update(emergent=false){
+  if(emergent){
+    clearTimeout(reset_timer)
+    _emit_player_update()
+  }else{
+    if(!emit_ready){
+      emit_try = true
+      return
+    }
+  }
+  emit_ready = false
+  reset_timer = setTimeout(()=>{
+    emit_ready = true
+    if(emit_try){
+      emit_try = false
+      _emit_player_update()
+    }
+  },200)
 }

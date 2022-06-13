@@ -1,9 +1,8 @@
 import * as PIXI from 'pixi.js'
-import { get_player_by_id, I, my_id as me } from './player'
-import { emit_player_update } from './comm'
-import {make_clickable,cancel_clickable} from './interaction'
+import { get_player_by_id, my_id as me } from './player'
+import { make_clickable,cancel_clickable } from './interaction'
 
-export const id_2_sprite:Map<string,Sprite> = new Map
+const id_2_sprite:Map<string,Sprite> = new Map
 const pixi_2_sprite:Map<PIXI.Sprite,Sprite> = new Map
 
 export function get_sprite_by_id(id:string){
@@ -79,7 +78,7 @@ export class Sprite{
 
 
     public update(data,validate_update_records=false){
-        console.log('update',data)
+        // console.log('update',data)
         if(validate_update_records){
             if(!this.compare_and_set_update_records(data['update_records'])){
                 console.log('refuse')
@@ -89,7 +88,7 @@ export class Sprite{
         for(let x in data){
             this[x] = data[x]
         }
-        this.pixi.anchor.set(data['anchor_x'],data['anchor_y'])
+        this.pixi.anchor.set(this['anchor_x'],this['anchor_y'])
         if(this['type']=='mouse'){
             cancel_clickable(this)
         }else{

@@ -1,10 +1,9 @@
 import { Renderer } from "@pixi/core"
 import { EventSystem } from "@pixi/events"
 import type { Application } from "@pixi/app"
-import { id_2_sprite, type Sprite } from "./sprite"
 import { my_id as me, I } from "./player"
 import { emit_player_update } from "./comm"
-import {for_each_sprite}from './sprite'
+import {for_each_sprite,Sprite}from './sprite'
 
 
 delete Renderer.__plugins.interaction
@@ -31,7 +30,8 @@ export function setup(app:Application){
     app.stage.addEventListener('pointermove',(e)=>{
         pointer.x = e.global.x
         pointer.y = e.global.y
-        sprite_pointermove(e)
+        emit_player_update()
+        sprite_pointermove()
     })
 
     app.stage.addEventListener('pointerup',(e)=>{
@@ -41,7 +41,7 @@ export function setup(app:Application){
     app.stage.addEventListener('pointerupoutside',(e)=>{
         const s = get_topmost_clickable(pointer.x,pointer.y)
         if(s){
-            sprite_pointerup(s)
+            sprite_pointerup()
         }
     })
 
@@ -79,7 +79,7 @@ function sprite_pointerup(){
     })
 }
 
-function sprite_pointermove(e){
+function sprite_pointermove(){
     if (!dragging_sprite)return
     // console.log(pointer)
     dragging_sprite.x = pointer.x;

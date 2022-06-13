@@ -21,7 +21,9 @@ export class Player{
     }
 
     public update(o){
-        this.mouse_sprite_id = o.mouse_sprite_id
+        for(let key in o){
+            this[key] = o[key]
+        }
     }
 
     public spare_sprite(s:Sprite){

@@ -5,7 +5,8 @@ from flask_login import login_user, current_user
 import threading
 import time
 import game.game as game
-import commu.user as user
+import comm.user as user
+import comm.adaptive_sync as ada_sync
 from utils import color
 
 login_manager = LoginManager()
@@ -40,19 +41,30 @@ def handle_connection(auth):
     player_info['player_id'] = p.id
     print(player_info)
     emit('game init',{'player_info':player_info})
+    make_sync_ready()
+    emit_game_state(selector=ada_sync.ALL)
     
 @socketio.on('disconnect')
 def handle_disconnection():
     print('disconnect!')
     game.remove_player(current_user.player_id)
     logout_user()
-    
+    make_sync_ready()
+
+sync_ready = threading.Semaphore(0)
+sync_ready_lock = threading.Lock()
+
+def make_sync_ready():
+    sync_ready_lock.acquire()
+    if sync_ready._value==0:
+        sync_ready.release()
+    sync_ready_lock.release()
+
 @socketio.on('player update')
 def handle_player_update(json):
     print(color('receive','green'),json)
     game.update_from_player(json)
-    if json['emergent']:
-        broadcase_game_state()
+    make_sync_ready()
 
 
 @socketio.on('my event')
@@ -75,20 +87,30 @@ def hello():
         }
     return 'hello '+d.get(a,'你谁?')
 
-def broadcase_game_state():
-    json = game.net()
-    print(color('send','purple'),json)
-    socketio.emit('heartbeat',json)
+def emit_game_state(selector=ada_sync.ALL,broadcast=False):
+    net = game.net(selector=selector)
+    if broadcast:
+        print(color('broadcast','purple'),net)
+        socketio.emit('heartbeat',net)
+    else:
+        print(color('send','purple'),net)
+        emit('heartbeat',net)
 
-
-def game_heartbeat():
+def sync_recent_updates():
     while True:
-        broadcase_game_state()
-        time.sleep(0.5)
+        sync_ready.acquire()
+        emit_game_state(selector=ada_sync.RECENT,broadcast=True)
+        game.sync_tick()
+        time.sleep(0.2)
+
+def sync_everything():
+    while True:
+        emit_game_state(selector='all',broadcast=True)
+        game.sync_tick()
+        time.sleep(10)
 
 if __name__=='__main__':
-    # print('??')
-    t = threading.Thread(target=game_heartbeat,daemon=True)
-    t.start()
+    threading.Thread(target=sync_recent_updates,daemon=True).start()
+    threading.Thread(target=sync_everything,daemon=True).start()
     
     socketio.run(app,host='0.0.0.0',port=5000,debug=True,use_reloader=False)

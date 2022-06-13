@@ -6,12 +6,13 @@ import type { Application } from '@pixi/app'
 export function update(server_data,pixiapp:Application){
     const sprite_pack = server_data.sprites
     const player_pack = server_data.players
-    update_sprites(sprite_pack,pixiapp)
-    update_players(player_pack)
+    const selector = server_data.selector
+    update_sprites(sprite_pack,selector,pixiapp)
+    update_players(player_pack,selector)
     populate_players()
 }
 
-function update_sprites(sprite_pack,pixiapp:Application){
+function update_sprites(sprite_pack,selector:string,pixiapp:Application){
     const to_add:Array<sprite.Sprite> = []
     const to_remove:Array<sprite.Sprite> = []
     for(let id in sprite_pack){
@@ -33,11 +34,14 @@ function update_sprites(sprite_pack,pixiapp:Application){
         s.update(data,true)
     }
     
-    sprite.for_each_sprite((s,id)=>{
-        if(!(id in sprite_pack)){
-            to_remove.push(s)
-        }
-    })
+    if(selector=='all'){
+        sprite.for_each_sprite((s,id)=>{
+            if(!(id in sprite_pack)){
+                to_remove.push(s)
+            }
+        })
+    }
+    
 
     to_remove.forEach((s,_)=>{
         sprite.remove_sprite(s)
@@ -52,7 +56,7 @@ function update_sprites(sprite_pack,pixiapp:Application){
     })
 }
 
-function update_players(player_pack){
+function update_players(player_pack,selector:string){
     for(let id in player_pack){
         const data = player_pack[id]
         const p = player.get_player_by_id(id)
@@ -65,12 +69,14 @@ function update_players(player_pack){
 
     const to_delete = []
 
-    player.for_each_player((p,i)=>{
-        if(!(i in player_pack)){
-            to_delete.push(i)
-        }
-    })
-
+    if(selector=='all'){
+        player.for_each_player((p,i)=>{
+            if(!(i in player_pack)){
+                to_delete.push(i)
+            }
+        })
+    }
+    
     to_delete.forEach((id,_)=>{
         player.remove_player(id)
     })

@@ -3,12 +3,13 @@ from random import random
 from game.sprite import SpriteManager
 from game.player import PlayerManager
 from game.man_sprite_player import ManagerOfSpritesAndPlayers
+from comm.adaptive_sync import SyncTagger
+import comm.adaptive_sync as ada_sync
 
-
-sprite_manager = SpriteManager()
-player_manager = PlayerManager()
+sync_tagger = SyncTagger()
+sprite_manager = SpriteManager(sync_tagger=sync_tagger)
+player_manager = PlayerManager(sync_tagger=sync_tagger)
 manager_sprite_player = ManagerOfSpritesAndPlayers(sprite_manager,player_manager)
-
 
 for i in range(6):
     x = int(random()*256)
@@ -29,7 +30,12 @@ def update_from_player(data):
     ts = data['player']['ts']
     manager_sprite_player.update_sprites(data['sprites'],who,ts)
     
-def net():
+def net(selector=ada_sync.ALL):
     return {
-        'sprites':sprite_manager.net(),
-        'players':player_manager.net()}
+        'selector':selector,
+        'sprites':sprite_manager.net(selector=selector),
+        'players':player_manager.net(selector=selector),
+        }
+
+def sync_tick():
+    sync_tagger.tick()
