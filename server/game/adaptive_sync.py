@@ -8,36 +8,40 @@ RECENT = 'recent'
 class SyncTagger:
     def __init__(self) -> None:
         self.current_tag = 0
-        self.lock = threading.Lock()
         
     def tick(self):
-        self.lock.acquire()
         self.current_tag += 1
-        self.lock.release()
     
     def tag(self,x:SyncObject):
-        x.tag = self.current_tag
+        x._tag = self.current_tag
     
     def match(self,x:SyncObject,selector:str):
         if selector==ALL:
             return True
         elif selector==RECENT:
-            return x.tag == self.current_tag
+            return x._tag == self.current_tag
         else:
             raise NotImplementedError
 
 
 class SyncObject:
     def __init__(self,tagger:SyncTagger) -> None:
-        self.tag = None
-        self.tagger = tagger
-        self.tagger.tag(self)
+        self._tag = None
+        self._tagger = tagger
+        self._tagger.tag(self)
+        self._lock = threading.Lock()
 
+    def acquire(self):
+        self._lock.acquire()
+    
+    def release(self):
+        self._lock.release()
+    
     def update(self,data):
         '''
         Do not override
         '''
-        self.tagger.tag(self)
+        self._tagger.tag(self)
         self._update(data)
     
     @abc.abstractmethod    

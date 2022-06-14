@@ -3,8 +3,8 @@ from random import random
 from game.sprite import SpriteManager
 from game.player import PlayerManager
 from game.man_sprite_player import ManagerOfSpritesAndPlayers
-from comm.adaptive_sync import SyncTagger
-import comm.adaptive_sync as ada_sync
+from game.adaptive_sync import SyncTagger
+import game.adaptive_sync as ada_sync
 
 sync_tagger = SyncTagger()
 sprite_manager = SpriteManager(sync_tagger=sync_tagger)
@@ -29,6 +29,12 @@ def update_from_player(data):
     who = data['player_id']
     ts = data['player']['ts']
     manager_sprite_player.update_sprites(data['sprites'],who,ts)
+    
+def claim_ownership(player_id:str,sprite_id:str,ts:int):
+    return manager_sprite_player.claim_ownership(player_id,sprite_id,ts)
+
+def release_ownership(player_id:str,sprite_id:str,ts:int,sprite_data:object):
+    manager_sprite_player.release_ownership(player_id,sprite_id,ts,sprite_data)
     
 def net(selector=ada_sync.ALL):
     return {

@@ -1,5 +1,5 @@
 
-from comm.adaptive_sync import SyncTagger,SyncObject
+from game.adaptive_sync import SyncTagger,SyncObject
 
 
 class Sprite(SyncObject):
@@ -18,17 +18,12 @@ class Sprite(SyncObject):
     def _update(self,data:dict):
         for attr in ['x','y','anchor_x','anchor_y','img','owner']:
             if attr in data.keys():
-                self.__dict__[attr] = data[attr]
-                
-    def compare_and_set_1_update_record(self,who:str,ts:int):
-        # print(f'{self.id} {self.update_records} cas {who} {ts}')
-        if who not in self.update_records.keys():
-            self.update_records[who] = ts
-            return True
-        if self.update_records[who]<=ts:
-            self.update_records[who]=ts
-            return True
-        return False
+                self.__dict__[attr] = data[attr]          
+    
+    def set_update_record(self,who:str,ts:int):
+        old_ts = self.update_records.get(who)
+        assert old_ts is None or old_ts <= ts        
+        self.update_records[who] = ts
         
     def destroy(self):
         self.owner = '_destroyed'

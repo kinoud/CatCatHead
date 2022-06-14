@@ -1,4 +1,6 @@
 import * as game from './game'
+import { I } from './player'
+import type { Sprite } from './sprite'
 
 
 var socket
@@ -48,4 +50,12 @@ export function emit_player_update(emergent=false){
       _emit_player_update()
     }
   },200)
+}
+
+export function rpc(func:string,args:object,callback:(res:object)=>void=null){
+  if(!callback){
+    socket.emit(func,args)
+  }else{
+    socket.emit(func,args,callback)
+  }
 }

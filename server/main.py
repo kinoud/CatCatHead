@@ -6,7 +6,7 @@ import threading
 import time
 import game.game as game
 import comm.user as user
-import comm.adaptive_sync as ada_sync
+import game.adaptive_sync as ada_sync
 from utils import color
 
 login_manager = LoginManager()
@@ -108,6 +108,32 @@ def sync_everything():
         emit_game_state(selector='all',broadcast=True)
         game.sync_tick()
         time.sleep(10)
+
+@socketio.on('claim_ownership')        
+def claim_ownership(args):
+    '''
+    args:{
+        'player_id':str,
+        'sprite_id':str,
+        'ts':int}
+    '''
+    ret = game.claim_ownership(args['player_id'], args['sprite_id'], args['ts'])
+    print(color('claim ownership','red'),'success:',ret)
+    return {'success':ret}
+    
+
+@socketio.on('release_ownership')
+def release_ownership(args):
+    '''
+    args:{
+        'player_id':str,
+        'sprite_id':str,
+        'ts':int,
+        'sprite_data':object}
+    '''
+    print(color('release ownership','blue'))
+    game.release_ownership(args['player_id'],args['sprite_id'],args['ts'],args['sprite_data'])
+    
 
 if __name__=='__main__':
     threading.Thread(target=sync_recent_updates,daemon=True).start()

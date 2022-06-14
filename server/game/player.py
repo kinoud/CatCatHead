@@ -1,31 +1,29 @@
 from game.sprite import Sprite
-from comm.adaptive_sync import SyncObject, SyncTagger
+from game.adaptive_sync import SyncObject, SyncTagger
 
 class Player(SyncObject):
     def __init__(self,id,mouse_sprite:Sprite,sync_tagger:SyncTagger) -> None:
         super().__init__(sync_tagger)
         self.id = id
-        self.sprites:dict[str,Sprite] = dict()
         self.mouse = mouse_sprite
-        self.take_sprite(mouse_sprite)
+        self.mouse.owner = id
+        self.ts = 0
         
+    def compare_and_set_ts(self,ts:int):
+        '''
+        returns True if ts>=self.ts and set ts, otherwise returns False
+        '''
+        self.acquire()        
+        if self.ts<=ts:
+            self.ts = ts
+            ret = True
+        else:
+            ret = False
+        self.release()
+        return ret
+    
     def _update(self,data):
         pass
-    
-    def take_sprite(self, sprite:Sprite):
-        sprite.owner = self.id
-        self.sprites[sprite.id]=sprite
-    
-    def spare_sprite(self, sprite:Sprite):
-        if sprite.owner == self.id:
-            sprite.owner = 'none'
-        self.sprites.pop(sprite.id)
-        
-    def spare_all_sprites(self):
-        for sprite in self.sprites.values():
-            if sprite.owner == self.id:
-                sprite.owner = 'none'
-        self.sprites.clear()
     
     def net(self):
         return {
@@ -50,7 +48,6 @@ class PlayerManager:
     def remove_player(self, player_id):
         p:Player = self.players[player_id]
         p.mouse.destroy()
-        p.spare_all_sprites()
         self.players.pop(player_id)
     
     def net(self,selector='all'):

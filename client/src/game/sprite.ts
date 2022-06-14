@@ -60,11 +60,11 @@ interface UpdateRecords{
     [player_id:string]:number
 }
 
-
+export const status={EASY:'easy',PENDING:'pending'}
 
 export class Sprite{
     public id:string
-    public status:string = 'easy'
+    public status:string = status.EASY
 
     public img:string
     public x:number

@@ -2,8 +2,8 @@ import { Renderer } from "@pixi/core"
 import { EventSystem } from "@pixi/events"
 import type { Application } from "@pixi/app"
 import { my_id as me, I } from "./player"
-import { emit_player_update } from "./comm"
-import {for_each_sprite,Sprite}from './sprite'
+import { emit_player_update, rpc } from "./comm"
+import {for_each_sprite,Sprite,status}from './sprite'
 
 
 delete Renderer.__plugins.interaction
@@ -54,6 +54,19 @@ function sprite_pointerdown(s:Sprite){
     dragging_sprite = s
     dragging_sprite.set_owner(me)
     dragging_sprite.pixi.alpha = 0.5
+
+    const ts = I().ts
+    rpc('claim_ownership',{'player_id':me,'sprite_id':s.id,'ts':ts},
+    (res)=>{
+        if(ts<I().ts)return
+        if(!res['success']){
+            if(dragging_sprite==s){
+                dragging_sprite = null
+                s.pixi.alpha = 1.0
+                s.set_owner('none')
+            }
+        }
+    })
 }
 
 function sprite_pointerup(){
@@ -61,22 +74,17 @@ function sprite_pointerup(){
 
     dragging_sprite.pixi.alpha = 1
 
-    if(!I().sprites.has(dragging_sprite.id)){
-        console.log('bug')
-    }
     I().ts += 1
-    console.log('before modify')
-    dragging_sprite.update_records[I().id] = I().ts
-    dragging_sprite.owner = 'none'
-    console.log('emitting update',I().sprites)
-    emit_player_update(true)
-    dragging_sprite.owner = me
+    dragging_sprite.update_records[I().id] = I().ts // to protect dragging_sprite
+    console.log('set ts',I().ts)
     dragging_sprite.set_owner('none')
     
-    dragging_sprite = null
-    for_each_sprite((s,_)=>{
-        console.log(s.id, s.update_records)
+    rpc('release_ownership',{
+        player_id:me,sprite_id:dragging_sprite.id,ts:I().ts,
+        sprite_data:dragging_sprite.meta
     })
+
+    dragging_sprite = null
 }
 
 function sprite_pointermove(){
