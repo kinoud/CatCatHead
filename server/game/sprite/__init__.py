@@ -3,20 +3,22 @@ from game.adaptive_sync import SyncTagger,SyncObject
 
 
 class Sprite(SyncObject):
-    def __init__(self,id:str,img:str,owner:str='none',x=0,y=0,anchor_x=0.5,anchor_y=0.5,type=None,sync_tagger:SyncTagger=None) -> None:
+    def __init__(self,id:str,img:str,owner:str='none',x=0,y=0,anchor_x=0.5,anchor_y=0.5,
+                 type=None,sync_tagger:SyncTagger=None,z_index=0) -> None:
         super().__init__(sync_tagger)
         self.id = id
         self.owner = owner
         self.img = img
         self.x = x
         self.y = y
+        self.z_index = z_index
         self.anchor_x = anchor_x
         self.anchor_y = anchor_y
         self.type = type
         self.update_records = dict()
         
     def _update(self,data:dict):
-        for attr in ['x','y','anchor_x','anchor_y','img','owner']:
+        for attr in ['x','y','anchor_x','anchor_y','img','owner','z_index']:
             if attr in data.keys():
                 self.__dict__[attr] = data[attr]          
     
@@ -36,7 +38,8 @@ class Sprite(SyncObject):
             'anchor_y': self.anchor_y,
             'x':self.x,
             'y':self.y,
-            'update_records':self.update_records}
+            'update_records':self.update_records,
+            'z_index':self.z_index}
         if self.type:
             o['type'] = self.type
         return o
@@ -50,10 +53,10 @@ class SpriteManager:
     def get_sprite_by_id(self,id):
         return self.sprites.get(id)
         
-    def new_sprite(self,img:str,owner:str='none',x=0,y=0,anchor_x=0.5,anchor_y=0.5,type=None):
+    def new_sprite(self,img:str,owner:str='none',x=0,y=0,anchor_x=0.5,anchor_y=0.5,type=None,z_index=0):
         sprite_id = 's'+str(self.next_id)
         self.next_id += 1
-        s = Sprite(sprite_id,img,owner,x,y,anchor_x,anchor_y,type=type,sync_tagger=self.sync_tagger)
+        s = Sprite(sprite_id,img,owner,x,y,anchor_x,anchor_y,type=type,sync_tagger=self.sync_tagger,z_index=z_index)
         self.sprites[sprite_id] = s
         return s
     

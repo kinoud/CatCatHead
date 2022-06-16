@@ -5,6 +5,12 @@ class ManagerOfSpritesAndPlayers:
     def __init__(self,man_sprites:SpriteManager,man_players:PlayerManager) -> None:
         self.man_sprites = man_sprites
         self.man_players = man_players
+        
+    def remove_player(self,player_id):
+        self.man_players.remove_player(player_id)
+        for sprite in self.man_sprites.sprites.values():
+            if sprite.owner == player_id:
+                sprite.owner = 'none'
     
     def update_sprites(self,data,who,ts):
         for sprite_id, sprite_data in data.items():

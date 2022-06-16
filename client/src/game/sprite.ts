@@ -17,15 +17,11 @@ export function for_each_sprite(func:(sprite:Sprite,id:string)=>void){
     id_2_sprite.forEach(func)
 }
 
-let z_index_top = 0
-
 export function new_sprite(id:string,meta:SpriteMeta):Sprite{
     console.assert(!id_2_sprite.has(id))
     const p = new PIXI.Sprite(
         PIXI.Loader.shared.resources[meta.img].texture
         )
-    p.zIndex = z_index_top
-    z_index_top++
     const s = new Sprite(p)
     s.id = id
     s.update(meta)
@@ -40,12 +36,17 @@ export function remove_sprite(sprite:Sprite){
 }
 
 export function game_loop(){
-    id_2_sprite.forEach((v,k)=>{
+    id_2_sprite.forEach((v)=>{
 
         const speed = v.owner==me?0.5:0.1
 
         v.pixi.x = v.pixi.x + (v.x-v.pixi.x)*speed
         v.pixi.y = v.pixi.y + (v.y-v.pixi.y)*speed
+        if(v.owner!=me&&v.owner!='none'){
+            v.pixi.alpha=0.5
+        }else{
+            v.pixi.alpha=1
+        }
     })
 }
 
@@ -72,6 +73,8 @@ export class Sprite{
     public anchor_x:number=0.5
     public anchor_y:number=0.5
     public update_records:UpdateRecords={}
+    public z_index:number=0
+    public type:string
 
     public owner:string
     public pixi:PIXI.Sprite
@@ -89,6 +92,7 @@ export class Sprite{
             this[x] = data[x]
         }
         this.pixi.anchor.set(this['anchor_x'],this['anchor_y'])
+        this.pixi.zIndex = this['z_index']
         if(this['type']=='mouse'){
             cancel_clickable(this)
         }else{
@@ -130,7 +134,11 @@ export class Sprite{
             // console.log('take')
             q.take_sprite(this)
         }
-        
+    }
+
+    public set_z_index(z_index:number){
+        this.z_index = z_index
+        this.pixi.zIndex = z_index
     }
 
     public on(event_type:string, call_back:(any)=>any){
@@ -145,7 +153,8 @@ export class Sprite{
             y:this.y,
             anchor_x:this.anchor_x,
             anchor_y:this.anchor_y,
-            owner:this.owner
+            owner:this.owner,
+            z_index:this.z_index,
         }
     }
 }

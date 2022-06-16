@@ -1,5 +1,5 @@
 from flask import Flask, request
-from flask_socketio import SocketIO, send, emit
+from flask_socketio import SocketIO, emit
 from flask_login import LoginManager, logout_user
 from flask_login import login_user, current_user
 import threading
@@ -8,6 +8,7 @@ import game.game as game
 import comm.user as user
 import game.adaptive_sync as ada_sync
 from utils import color
+import json
 
 login_manager = LoginManager()
 
@@ -50,6 +51,7 @@ def handle_disconnection():
     game.remove_player(current_user.player_id)
     logout_user()
     make_sync_ready()
+    emit_game_state(selector=ada_sync.ALL, broadcast=True)
 
 sync_ready = threading.Semaphore(0)
 sync_ready_lock = threading.Lock()
@@ -61,17 +63,17 @@ def make_sync_ready():
     sync_ready_lock.release()
 
 @socketio.on('player update')
-def handle_player_update(json):
-    print(color('receive','green'),json)
-    game.update_from_player(json)
+def handle_player_update(o):
+    print(color('receive','green'),json.dumps(o))
+    game.update_from_player(o)
     make_sync_ready()
 
 
 @socketio.on('my event')
-def handel_my_event(json):
-    print('received json: '+str(json))
-    who = json['who']
-    msg = json['msg']
+def handel_my_event(o):
+    print('received obj: '+str(o))
+    who = o['who']
+    msg = o['msg']
     message_list.append((who,msg))
     emit('my response',{'who':who,'msg':msg},broadcast=True)
 
@@ -90,10 +92,10 @@ def hello():
 def emit_game_state(selector=ada_sync.ALL,broadcast=False):
     net = game.net(selector=selector)
     if broadcast:
-        print(color('broadcast','purple'),net)
+        print(color('broadcast','purple'),json.dumps(net,indent=4))
         socketio.emit('heartbeat',net)
     else:
-        print(color('send','purple'),net)
+        print(color('send','purple'),json.dumps(net,indent=4))
         emit('heartbeat',net)
 
 def sync_recent_updates():
@@ -107,7 +109,7 @@ def sync_everything():
     while True:
         emit_game_state(selector='all',broadcast=True)
         game.sync_tick()
-        time.sleep(10)
+        time.sleep(60)
 
 @socketio.on('claim_ownership')        
 def claim_ownership(args):

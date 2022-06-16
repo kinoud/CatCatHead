@@ -3,7 +3,8 @@ import { EventSystem } from "@pixi/events"
 import type { Application } from "@pixi/app"
 import { my_id as me, I } from "./player"
 import { emit_player_update, rpc } from "./comm"
-import {for_each_sprite,Sprite,status}from './sprite'
+import type { Sprite } from "./sprite"
+import { layer_index, outline_off, outline_on, top_z_index } from "./display"
 
 
 delete Renderer.__plugins.interaction
@@ -21,6 +22,9 @@ export function setup(app:Application){
     app.stage.addEventListener('pointerdown',(e)=>{
         pointer.x = e.global.x
         pointer.y = e.global.y
+        if(selected_sprite){
+            release_selected()
+        }
         const s = get_topmost_clickable(pointer.x,pointer.y)
         if(s){
             sprite_pointerdown(s)
@@ -50,10 +54,41 @@ export function setup(app:Application){
 
 let dragging_sprite:Sprite = null
 
+let selected_sprite:Sprite = null
+
+
+interface ReleaseOwnershipArgs{
+    player_id:string
+    sprite_id:string
+    ts:number
+    sprite_data:object
+}
+
+function release_selected(){
+    I().critical_action(
+        (ts)=>{
+            outline_off(selected_sprite)
+            selected_sprite.update_records[I().id] = ts // to protect sprite
+            selected_sprite.set_owner('none')
+            rpc('release_ownership',<ReleaseOwnershipArgs>{
+                player_id:me,sprite_id:selected_sprite.id,ts:ts,
+                sprite_data:selected_sprite.meta
+            },()=>{
+                I().critical_release()
+            })
+            selected_sprite = null
+        }
+    )
+}
+
 function sprite_pointerdown(s:Sprite){
+    if(s.owner!='none'&&s.owner!=me)return
+    selected_sprite = s
+    outline_on(selected_sprite)
+
     dragging_sprite = s
     dragging_sprite.set_owner(me)
-    dragging_sprite.pixi.alpha = 0.5
+    dragging_sprite.set_z_index(top_z_index[layer_index.MID]+1)
 
     const ts = I().ts
     rpc('claim_ownership',{'player_id':me,'sprite_id':s.id,'ts':ts},
@@ -62,7 +97,6 @@ function sprite_pointerdown(s:Sprite){
         if(!res['success']){
             if(dragging_sprite==s){
                 dragging_sprite = null
-                s.pixi.alpha = 1.0
                 s.set_owner('none')
             }
         }
@@ -71,25 +105,11 @@ function sprite_pointerdown(s:Sprite){
 
 function sprite_pointerup(){
     if(!dragging_sprite)return
-
-    dragging_sprite.pixi.alpha = 1
-
-    I().ts += 1
-    dragging_sprite.update_records[I().id] = I().ts // to protect dragging_sprite
-    console.log('set ts',I().ts)
-    dragging_sprite.set_owner('none')
-    
-    rpc('release_ownership',{
-        player_id:me,sprite_id:dragging_sprite.id,ts:I().ts,
-        sprite_data:dragging_sprite.meta
-    })
-
     dragging_sprite = null
 }
 
 function sprite_pointermove(){
     if (!dragging_sprite)return
-    // console.log(pointer)
     dragging_sprite.x = pointer.x;
     dragging_sprite.y = pointer.y;
 }

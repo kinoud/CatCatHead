@@ -4,12 +4,13 @@ import { pointer, setup as interaction_setup } from './interaction'
 import { setup as comm_setup } from './comm'
 import * as sprite from './sprite'
 import * as player from './player'
+import { setup as display_setup } from './display'
 import { update as update_sprite_player } from './sprite_player'
 
 
 export var loaded = false
 
-export const pixiapp = new Application({width:256,height:256})
+export const pixiapp = new Application({width:400,height:400})
 
 export function setup(socket, div:HTMLDivElement){
     
@@ -19,14 +20,15 @@ export function setup(socket, div:HTMLDivElement){
 
     comm_setup(socket)
     
+    display_setup(pixiapp)
     
     PIXI.Loader.shared
     .add(
         ['cat.png','mouse.png'])
     .load(()=>{
         console.log('loaded!')
-        gameLoop()
         loaded = true
+        gameLoop()
         // pixiapp.stage.addEventListener('pointerdown',(event)=>{
         //     console.log('stage pointer down',event)
         // })

@@ -1,6 +1,7 @@
 import * as sprite from './sprite'
 import * as player from './player'
 import type { Application } from '@pixi/app'
+import { add_to_layer, layer_index, remove_from_layer, update_top_z_index } from './display'
 
 
 export function update(server_data,pixiapp:Application){
@@ -32,6 +33,8 @@ function update_sprites(sprite_pack,selector:string,pixiapp:Application){
         player.get_player_by_id(s.owner)
         
         s.update(data,true)
+        
+        update_top_z_index(s)
     }
     
     if(selector=='all'){
@@ -42,17 +45,20 @@ function update_sprites(sprite_pack,selector:string,pixiapp:Application){
         })
     }
     
-
     to_remove.forEach((s,_)=>{
         sprite.remove_sprite(s)
     })
 
     to_add.forEach((s,_)=>{
         console.log('add to stage')
-        pixiapp.stage.addChild(s.pixi)
+        if(s.type=='mouse'){
+            add_to_layer(layer_index.HIGH,s)
+        }else{
+            add_to_layer(layer_index.MID,s)
+        }
     })
     to_remove.forEach((s,_)=>{
-        pixiapp.stage.removeChild(s.pixi)
+        remove_from_layer(s)
     })
 }
 

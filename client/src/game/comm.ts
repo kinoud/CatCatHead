@@ -1,7 +1,4 @@
 import * as game from './game'
-import { I } from './player'
-import type { Sprite } from './sprite'
-
 
 var socket
 

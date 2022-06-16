@@ -13,11 +13,43 @@ export class Player{
     id:string
     public sprites:Map<string,Sprite> = new Map
     public mouse_sprite_id:string
-    ts:number=0
+    private token:number=0
+    private token_locked:boolean=false
+    private critical_tries:number=0
 
     constructor(id:string, mouse_sprite_id:string){
         this.id = id
         this.mouse_sprite_id = mouse_sprite_id
+    }
+
+    get ts(){
+        return this.token
+    }
+
+    public critical_release(){
+        console.log('release critical')
+        this.token_locked=false
+    }
+
+    public critical_action(action:(ts:number)=>void){
+        if(this.token_locked){
+            console.log('ts locked!')
+            this.critical_tries += 1
+            if(this.critical_tries>10){
+                console.log('critical abort!')
+                this.token_locked = false
+                return
+            }
+            setTimeout(() => {
+                this.critical_action(action)   
+            }, 50);
+            return
+        }
+        this.critical_tries = 0
+        this.token_locked = true
+        console.log('doing critical',this)
+        this.token += 1
+        action(this.token)
     }
 
     public update(o){

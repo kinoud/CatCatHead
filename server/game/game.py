@@ -11,7 +11,7 @@ sprite_manager = SpriteManager(sync_tagger=sync_tagger)
 player_manager = PlayerManager(sync_tagger=sync_tagger)
 manager_sprite_player = ManagerOfSpritesAndPlayers(sprite_manager,player_manager)
 
-for i in range(6):
+for i in range(2):
     x = int(random()*256)
     y = int(random()*256)
     # x,y=0,0
@@ -23,7 +23,7 @@ def new_player():
     return p
 
 def remove_player(player_id):
-    player_manager.remove_player(player_id)
+    manager_sprite_player.remove_player(player_id)
     
 def update_from_player(data):
     who = data['player_id']
