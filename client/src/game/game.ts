@@ -1,55 +1,41 @@
 import * as PIXI from 'pixi.js'
 import { Application } from "@pixi/app"
-import { pointer, setup as interaction_setup } from './interaction'
-import { setup as comm_setup } from './comm'
-import * as sprite from './sprite'
+import { setup as interaction_setup, frame_loop as interaction_loop } from './interaction'
+import { rpc, setup as comm_setup } from './comm'
 import * as player from './player'
-import { setup as display_setup } from './display'
-import { update as update_sprite_player } from './sprite_player'
+import { frame_loop as display_loop, setup as display_setup } from './display'
+import { update as update_sprite_player, setup as sprite_player_setup} from './sprite_player'
 
 
 export var loaded = false
 
-export const pixiapp = new Application({width:400,height:400})
+export const pixiapp = new Application({width:700,height:700})
 
 export function setup(socket, div:HTMLDivElement){
-    
     div.appendChild(pixiapp.view)
-
     interaction_setup(pixiapp)
-
     comm_setup(socket)
-    
     display_setup(pixiapp)
-    
+    sprite_player_setup()
+}
+
+
+export function load_resource(sprite_sheet:string){
     PIXI.Loader.shared
     .add(
-        ['cat.png','mouse.png'])
+        ['cat.png','mouse.png',sprite_sheet])
     .load(()=>{
-        console.log('loaded!')
+        console.log('resource loaded!')
+        rpc('get_game_state',{},(res)=>{update(res)})
         loaded = true
-        gameLoop()
-        // pixiapp.stage.addEventListener('pointerdown',(event)=>{
-        //     console.log('stage pointer down',event)
-        // })
+        game_loop()
     })
 }
 
-function gameLoop(){
-    requestAnimationFrame(gameLoop)
-
-    const I:player.Player = player.I()
-    if(I){
-        const mouse = I.mouse
-        if(mouse){
-            mouse.x = pointer.x
-            mouse.y = pointer.y
-            mouse.pixi.x += (pointer.x-mouse.pixi.x)*0.5
-            mouse.pixi.y += (pointer.y-mouse.pixi.y)*0.5
-        }
-    }
-    
-    sprite.game_loop()
+function game_loop(){
+    requestAnimationFrame(game_loop)
+    interaction_loop()
+    display_loop()
 }
 
 export function add_player(info){
@@ -76,7 +62,7 @@ export function get_player_update(){
 
 export function update(server_data){
     // console.log('receive update',server_data)
-    update_sprite_player(server_data,pixiapp)
+    update_sprite_player(server_data)
 }
 
 export function info():string{

@@ -1,6 +1,8 @@
 import * as PIXI from 'pixi.js'
-import { get_player_by_id, my_id as me } from './player'
-import { make_clickable,cancel_clickable } from './interaction'
+import { my_id as me } from './player'
+import { TextureCache } from '@pixi/utils'
+
+export const TYPE = {BACKGROUND:'background',MOUSE:'mouse'}
 
 const id_2_sprite:Map<string,Sprite> = new Map
 const pixi_2_sprite:Map<PIXI.Sprite,Sprite> = new Map
@@ -13,41 +15,35 @@ export function get_sprite_by_pixi(pixi:PIXI.Sprite){
     return pixi_2_sprite.get(pixi)
 }
 
-export function for_each_sprite(func:(sprite:Sprite,id:string)=>void){
+export function for_each_sprite(func:(sprite:Sprite)=>void){
     id_2_sprite.forEach(func)
 }
 
 export function new_sprite(id:string,meta:SpriteMeta):Sprite{
     console.assert(!id_2_sprite.has(id))
     const p = new PIXI.Sprite(
-        PIXI.Loader.shared.resources[meta.img].texture
+        TextureCache[meta.img]
         )
     const s = new Sprite(p)
     s.id = id
     s.update(meta)
     id_2_sprite.set(id,s)
     pixi_2_sprite.set(p,s)
+    trigger_event(EVENT.NEW_SPRITE,{sprite:s})
     return s
 }
 
 export function remove_sprite(sprite:Sprite){
     id_2_sprite.delete(sprite.id)
     pixi_2_sprite.delete(sprite.pixi)
+    trigger_event(EVENT.REMOVE_SPRITE,{sprite:sprite})
 }
 
-export function game_loop(){
-    id_2_sprite.forEach((v)=>{
-
-        const speed = v.owner==me?0.5:0.1
-
-        v.pixi.x = v.pixi.x + (v.x-v.pixi.x)*speed
-        v.pixi.y = v.pixi.y + (v.y-v.pixi.y)*speed
-        if(v.owner!=me&&v.owner!='none'){
-            v.pixi.alpha=0.5
-        }else{
-            v.pixi.alpha=1
-        }
-    })
+export function update_sprite(sprite:Sprite,data,validate_update_records=false){
+    const original_data = sprite.meta
+    const accept = sprite.update(data,validate_update_records)
+    trigger_event(EVENT.UPDATE_SPRITE,
+        {sprite:sprite,accept:accept,original_data:original_data,data:data,validate_update_records:validate_update_records})
 }
 
 export interface SpriteMeta{
@@ -61,11 +57,8 @@ interface UpdateRecords{
     [player_id:string]:number
 }
 
-export const status={EASY:'easy',PENDING:'pending'}
-
 export class Sprite{
     public id:string
-    public status:string = status.EASY
 
     public img:string
     public x:number
@@ -75,7 +68,9 @@ export class Sprite{
     public update_records:UpdateRecords={}
     public z_index:number=0
     public type:string
-
+    public rotation:number=0
+    public scale_x:number=1
+    public scale_y:number=1
     public owner:string
     public pixi:PIXI.Sprite
 
@@ -85,7 +80,7 @@ export class Sprite{
         if(validate_update_records){
             if(!this.compare_and_set_update_records(data['update_records'])){
                 console.log('refuse')
-                return
+                return false
             }
         }
         for(let x in data){
@@ -93,11 +88,7 @@ export class Sprite{
         }
         this.pixi.anchor.set(this['anchor_x'],this['anchor_y'])
         this.pixi.zIndex = this['z_index']
-        if(this['type']=='mouse'){
-            cancel_clickable(this)
-        }else{
-            make_clickable(this)
-        }
+        return true
     }
 
     /**
@@ -122,29 +113,6 @@ export class Sprite{
         this.pixi = pixi
     }
 
-    public set_owner(owner:string){
-        // console.log(this.id,'set owner',owner)
-        const p = get_player_by_id(this.owner)
-        // console.log('player before',p)
-        p?.spare_sprite(this)
-        this.owner = owner
-        const q = get_player_by_id(this.owner)
-        // console.log('player after',q)
-        if(q){
-            // console.log('take')
-            q.take_sprite(this)
-        }
-    }
-
-    public set_z_index(z_index:number){
-        this.z_index = z_index
-        this.pixi.zIndex = z_index
-    }
-
-    public on(event_type:string, call_back:(any)=>any){
-        this.pixi.on(event_type,call_back.bind(this))
-        return this
-    }
 
     get meta(){
         return {
@@ -155,6 +123,29 @@ export class Sprite{
             anchor_y:this.anchor_y,
             owner:this.owner,
             z_index:this.z_index,
+            rotation:this.rotation,
+            scale_x:this.scale_x,
+            scale_y:this.scale_y
         }
     }
+}
+
+
+export const EVENT = {NEW_SPRITE:0,UPDATE_SPRITE:1,REMOVE_SPRITE:2}
+
+interface Listeners{
+    [event:string|number]:Array<Function>
+}
+
+const listeners:Listeners = {}
+
+export function add_listener(event_type:string|number,func:Function){
+    if(!listeners[event_type]){
+        listeners[event_type] = []
+    }
+    listeners[event_type].push(func)
+}
+
+function trigger_event(event_type:string|number,e={}){
+    listeners[event_type]?.forEach(f=>{f(e)})
 }

@@ -2,9 +2,17 @@
 from game.adaptive_sync import SyncTagger,SyncObject
 
 
+
 class Sprite(SyncObject):
-    def __init__(self,id:str,img:str,owner:str='none',x=0,y=0,anchor_x=0.5,anchor_y=0.5,
-                 type=None,sync_tagger:SyncTagger=None,z_index=0) -> None:
+    BACKGROUND = 'background'
+    MOUSE = 'mouse'
+    def __init__(self,id:str,img:str,owner:str='none',
+                 x=0,y=0,anchor_x=0.5,anchor_y=0.5,
+                 type=None,sync_tagger:SyncTagger=None,
+                 z_index=0,
+                 rotation=0,
+                 scale_x=1,
+                 scale_y=1) -> None:
         super().__init__(sync_tagger)
         self.id = id
         self.owner = owner
@@ -15,12 +23,14 @@ class Sprite(SyncObject):
         self.anchor_x = anchor_x
         self.anchor_y = anchor_y
         self.type = type
+        self.rotation =rotation
+        self.scale_x = scale_x
+        self.scale_y = scale_y
         self.update_records = dict()
         
     def _update(self,data:dict):
-        for attr in ['x','y','anchor_x','anchor_y','img','owner','z_index']:
-            if attr in data.keys():
-                self.__dict__[attr] = data[attr]          
+        for attr in data.keys():
+            self.__dict__[attr] = data[attr]          
     
     def set_update_record(self,who:str,ts:int):
         old_ts = self.update_records.get(who)
@@ -39,7 +49,10 @@ class Sprite(SyncObject):
             'x':self.x,
             'y':self.y,
             'update_records':self.update_records,
-            'z_index':self.z_index}
+            'z_index':self.z_index,
+            'rotation':self.rotation,
+            'scale_x':self.scale_x,
+            'scale_y':self.scale_y}
         if self.type:
             o['type'] = self.type
         return o

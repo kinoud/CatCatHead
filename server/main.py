@@ -41,7 +41,7 @@ def handle_connection(auth):
     player_info = p.net()
     player_info['player_id'] = p.id
     print(player_info)
-    emit('game init',{'player_info':player_info})
+    emit('game init',{'player_info':player_info,'sprite_sheet':game.sprite_sheet})
     make_sync_ready()
     emit_game_state(selector=ada_sync.ALL)
     
@@ -92,10 +92,10 @@ def hello():
 def emit_game_state(selector=ada_sync.ALL,broadcast=False):
     net = game.net(selector=selector)
     if broadcast:
-        print(color('broadcast','purple'),json.dumps(net,indent=4))
+        print(color('broadcast','purple'),net)
         socketio.emit('heartbeat',net)
     else:
-        print(color('send','purple'),json.dumps(net,indent=4))
+        print(color('send','purple'),net)
         emit('heartbeat',net)
 
 def sync_recent_updates():
@@ -110,7 +110,11 @@ def sync_everything():
         emit_game_state(selector='all',broadcast=True)
         game.sync_tick()
         time.sleep(60)
-
+        
+@socketio.on('get_game_state')
+def get_game_state(args):
+    return game.net(selector=ada_sync.ALL)
+    
 @socketio.on('claim_ownership')        
 def claim_ownership(args):
     '''
