@@ -3,13 +3,43 @@ import { OutlineFilter } from "@pixi/filter-outline";
 import type { Application } from "@pixi/app"
 import type { Sprite } from "./sprite";
 import * as sprite from './sprite'
-import { my_id as me} from "./player";
+import { I, my_id as me} from "./player";
 
 const layers:Array<Container> = []
 const which_layer:Map<Sprite,number> = new Map
 
 export const top_z_index = {2:0,1:0,0:0}
 export const layer_index = {HIGH:2,MID:1,LOW:0}
+
+export function frame_loop(){
+    const mouse = I()?.mouse
+    if(mouse){
+        mouse.rotation = -view.rotation
+    }
+
+    const pv = view.pixi
+    pv.x += (view.x-pv.x)*0.1
+    pv.y += (view.y-pv.y)*0.1
+    pv.rotation += (view.rotation-pv.rotation)*0.1
+    pv.scale.x += (view.scale-pv.scale.x)*0.1
+    pv.scale.y += (view.scale-pv.scale.y)*0.1
+
+
+    sprite.for_each_sprite(s=>{
+        const speed = s.owner==me?0.5:0.1
+        const p = s.pixi
+        p.x = p.x + (s.x-p.x)*speed
+        p.y = p.y + (s.y-p.y)*speed
+        p.rotation = p.rotation + (s.rotation-p.rotation)*0.1
+        p.scale.x = p.scale.x + (s.scale_x-p.scale.x)*0.1
+        p.scale.y = p.scale.y + (s.scale_y-p.scale.y)*0.1
+        if(s.owner!=me&&s.owner!='none'){
+            p.alpha=0.5
+        }else{
+            p.alpha=1
+        }
+    }) 
+}
 
 export function update_top_z_index(sprite:Sprite){
     const L = which_layer.get(sprite)
@@ -32,8 +62,9 @@ export function setup(pixiapp:Application){
         const L = new Container()
         L.sortableChildren = true
         layers.push(L)
-        pixiapp.stage.addChild(L)
+        view.pixi.addChild(L)
     }
+    pixiapp.stage.addChild(view.pixi)
 
     sprite.add_listener(sprite.EVENT.NEW_SPRITE,e=>{
         const s:Sprite = e.sprite
@@ -66,19 +97,69 @@ export function outline_off(sprite:Sprite){
     sprite.pixi.filters = []
 }
 
-export function frame_loop(){
-    sprite.for_each_sprite(s=>{
-        const speed = s.owner==me?0.5:0.1
-        const p = s.pixi
-        p.x = p.x + (s.x-p.x)*speed
-        p.y = p.y + (s.y-p.y)*speed
-        p.rotation = p.rotation + (s.rotation-p.rotation)*0.1
-        p.scale.x = p.scale.x + (s.scale_x-p.scale.x)*0.1
-        p.scale.y = p.scale.y + (s.scale_y-p.scale.y)*0.1
-        if(s.owner!=me&&s.owner!='none'){
-            p.alpha=0.5
-        }else{
-            p.alpha=1
-        }
-    })
+
+interface View{
+    x:number
+    y:number
+    rotation:number
+    scale:number
+    pixi:Container
 }
+
+const view:View = {x:0,y:0,rotation:0,scale:1,pixi:new Container()}
+
+interface P2d{
+    x:number
+    y:number
+}
+
+export function to_world_position(pointer_wrt_canvas:P2d,wrt_pixi=false):P2d{
+    const x = pointer_wrt_canvas.x
+    const y = pointer_wrt_canvas.y
+    const x0 = wrt_pixi?view.pixi.x:view.x
+    const y0 = wrt_pixi?view.pixi.y:view.y
+    const r = wrt_pixi?view.pixi.rotation:view.rotation
+    const s = wrt_pixi?view.pixi.scale.x:view.scale
+    const cos = Math.cos(r)
+    const sin = Math.sin(r)
+    return {x:((x-x0)*cos+(y-y0)*sin)/s,y:(-(x-x0)*sin+(y-y0)*cos)/s}
+}
+
+let offset_dragging:P2d
+
+export function start_dragging_view(pointer_wrt_canvas:P2d){
+    offset_dragging = {x:view.x - pointer_wrt_canvas.x,y:view.y - pointer_wrt_canvas.y}
+}
+
+export function drag_view(pointer_wrt_canvas:P2d){
+    view.x = pointer_wrt_canvas.x + offset_dragging.x
+    view.y = pointer_wrt_canvas.y + offset_dragging.y
+}
+
+export function rotate_vector_clockwise(v:P2d, rad:number){
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    const x = v.x*cos-v.y*sin
+    const y = v.y*cos+v.x*sin
+    v.x = x
+    v.y = y
+}
+
+export function rotate_view_clockwise(center_wrt_canvas:P2d, delta_rad:number){
+    let offset = {x:view.x-center_wrt_canvas.x,y:view.y-center_wrt_canvas.y}
+    rotate_vector_clockwise(offset, delta_rad)
+    view.rotation += delta_rad
+    view.x = center_wrt_canvas.x + offset.x
+    view.y = center_wrt_canvas.y + offset.y
+}
+
+export function scale_view(center_wrt_canvas:P2d, factor:number){
+    let offset = {x:view.x-center_wrt_canvas.x,
+        y:view.y-center_wrt_canvas.y}
+    offset.x *= factor
+    offset.y *= factor
+    view.scale *= factor
+    view.x = center_wrt_canvas.x + offset.x
+    view.y = center_wrt_canvas.y + offset.y
+}
+

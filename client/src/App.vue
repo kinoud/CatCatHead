@@ -47,8 +47,23 @@ const game_div = ref(null)
 
 const msg_box = ref(null)
 
+
+function mouse_wheel_handler(e){
+  console.log('mouse_wheel_handler')
+  e.preventDefault()
+  // e.stopPropagation()
+  return false
+}
+
 onMounted(()=>{
   game.setup(socket,game_div.value)
+
+  game_div.value.addEventListener(
+    'mousewheel',mouse_wheel_handler,false
+  )
+  game_div.value.addEventListener(
+    'DOMMouseScroll',mouse_wheel_handler,false
+  )
 
   setInterval(()=>{
     game_info.value = game.info()

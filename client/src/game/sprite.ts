@@ -1,8 +1,17 @@
 import * as PIXI from 'pixi.js'
 import { my_id as me } from './player'
 import { TextureCache } from '@pixi/utils'
+import {rotate_vector_clockwise} from './display'
 
 export const TYPE = {BACKGROUND:'background',MOUSE:'mouse'}
+
+let sprite_sheet
+
+export function set_sprite_sheet(sp){
+    sprite_sheet = sp
+}
+
+const resources = PIXI.Loader.shared.resources
 
 const id_2_sprite:Map<string,Sprite> = new Map
 const pixi_2_sprite:Map<PIXI.Sprite,Sprite> = new Map
@@ -24,7 +33,24 @@ export function new_sprite(id:string,meta:SpriteMeta):Sprite{
     const p = new PIXI.Sprite(
         TextureCache[meta.img]
         )
+    
+    p.texture.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST
     const s = new Sprite(p)
+
+    const magnetics = resources[sprite_sheet].data.frames[meta.img]?.magnetics
+    
+    if(magnetics){
+        s.magnetics = []
+        for(let i=0;i<magnetics.length;i++){
+            s.magnetics.push({x:magnetics[i][0],y:magnetics[i][1]})
+        }
+        s.magnetics.sort((a,b)=>{
+            if(a.x!=b.x)return a.x-b.x
+            return a.y-b.y
+        })
+    }
+    console.log(s.magnetics)
+
     s.id = id
     s.update(meta)
     id_2_sprite.set(id,s)
@@ -53,8 +79,9 @@ export interface SpriteMeta{
     img:string
 }
 
-interface UpdateRecords{
-    [player_id:string]:number
+interface P2d{
+    x:number,
+    y:number
 }
 
 export class Sprite{
@@ -65,7 +92,7 @@ export class Sprite{
     public y:number
     public anchor_x:number=0.5
     public anchor_y:number=0.5
-    public update_records:UpdateRecords={}
+    public update_record:number
     public z_index:number=0
     public type:string
     public rotation:number=0
@@ -73,16 +100,18 @@ export class Sprite{
     public scale_y:number=1
     public owner:string
     public pixi:PIXI.Sprite
+    public magnetics:Array<{x:number,y:number}>
 
 
     public update(data,validate_update_records=false){
         // console.log('update',data)
         if(validate_update_records){
-            if(!this.compare_and_set_update_records(data['update_records'])){
+            if(!this.compare_update_record(data['update_records'][me])){
                 console.log('refuse')
                 return false
             }
         }
+        
         for(let x in data){
             this[x] = data[x]
         }
@@ -91,22 +120,23 @@ export class Sprite{
         return true
     }
 
-    /**
-     * 
-     * @param update_records we assume update_records has every online player's entry
-     * @returns 
-     */
-    public compare_and_set_update_records(update_records:UpdateRecords){
-        for(let p in update_records){
-            if(p in this.update_records && this.update_records[p]>update_records[p]){
-                return false
-            }
+    public transform_absolute(p:P2d):P2d{
+        const w = this.pixi.texture.width
+        const h = this.pixi.texture.height
+        const q = {
+            x: (p.x-w*this.anchor_x)*this.scale_x,
+            y: (p.y-h*this.anchor_y)*this.scale_y,
         }
-        if(!(me in update_records)&&(me in this.update_records))return false
-        for(let p in update_records){
-            this.update_records[p] = update_records[p]
-        }
-        return true
+        rotate_vector_clockwise(q, this.rotation)
+        q.x += this.x
+        q.y += this.y
+        return q
+    }
+
+    public compare_update_record(update_record){
+        const old = this.update_record
+        const upd = update_record
+        return (!old||(upd&&upd>=old))
     }
 
     constructor(pixi:PIXI.Sprite){

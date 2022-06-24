@@ -37,7 +37,7 @@ function update_sprites(sprite_pack,selector:string){
         // if(s.owner==player.my_id){
             continue
         }
-
+        console.log('update',data)
         sprite.update_sprite(s,data,true)
     }
     

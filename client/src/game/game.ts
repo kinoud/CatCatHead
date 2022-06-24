@@ -5,11 +5,13 @@ import { rpc, setup as comm_setup } from './comm'
 import * as player from './player'
 import { frame_loop as display_loop, setup as display_setup } from './display'
 import { update as update_sprite_player, setup as sprite_player_setup} from './sprite_player'
+import { set_sprite_sheet } from './sprite'
 
 
 export var loaded = false
 
 export const pixiapp = new Application({width:700,height:700})
+
 
 export function setup(socket, div:HTMLDivElement){
     div.appendChild(pixiapp.view)
@@ -19,8 +21,9 @@ export function setup(socket, div:HTMLDivElement){
     sprite_player_setup()
 }
 
-
 export function load_resource(sprite_sheet:string){
+    set_sprite_sheet(sprite_sheet)
+
     PIXI.Loader.shared
     .add(
         ['cat.png','mouse.png',sprite_sheet])
