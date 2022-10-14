@@ -49,7 +49,6 @@ export function new_sprite(id:string,meta:SpriteMeta):Sprite{
             return a.y-b.y
         })
     }
-    console.log(s.magnetics)
 
     s.id = id
     s.update(meta)
@@ -104,7 +103,6 @@ export class Sprite{
 
 
     public update(data,validate_update_records=false){
-        // console.log('update',data)
         if(validate_update_records){
             if(!this.compare_update_record(data['update_records'][me])){
                 console.log('refuse')

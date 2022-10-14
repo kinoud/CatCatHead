@@ -21,7 +21,7 @@ function dist2(p:P2d,q:P2d){
     return (p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)
 }
 
-const max_dist2 = 4*4
+const max_dist2 = 15*15
 
 export function magnetic_offset(src:Sprite){
     const candidates:Array<P2d> = []

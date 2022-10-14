@@ -1,12 +1,15 @@
 import { Renderer } from "@pixi/core"
 import { EventSystem, FederatedPointerEvent, FederatedWheelEvent } from "@pixi/events"
 import type { Application } from "@pixi/app"
-import { my_id as me, I } from "./player"
-import { emit_player_update, rpc } from "./comm"
-import * as sprite from './sprite'
-import type {Sprite} from './sprite'
-import { drag_view, layer_index, outline_off, outline_on, rotate_view_clockwise, scale_view, start_dragging_view, top_z_index, to_world_position } from "./display"
-import {magnetic_offset, setup as magnetic_setup} from './magnetic'
+import { my_id as me, I } from "../player"
+import { emit_player_update, rpc } from "../comm"
+import * as sprite from '../sprite'
+import type {Sprite} from '../sprite'
+import { drag_view, layer_index, outline_off, outline_on, rotate_view_clockwise, scale_view, start_dragging_view, top_z_index, to_world_position } from "../display"
+import {magnetic_offset, setup as magnetic_setup} from '../magnetic'
+import {print_log} from '../game'
+import {setup as touch_setup, TOUCHACTION, get_current_action, touch_to_pointer} from './touch'
+
 
 delete Renderer.__plugins.interaction
 
@@ -26,6 +29,7 @@ export function frame_loop(){
 let is_dragging_view:boolean = false
 
 const canvas_center = {x:0,y:0}
+let canvas:HTMLCanvasElement
 
 export function setup(app:Application){
     app.stage.interactive = true
@@ -35,29 +39,20 @@ export function setup(app:Application){
 
     renderer.addSystem(EventSystem, 'events')
 
-    
-
-
     canvas_center.x = app.view.width/2
     canvas_center.y = app.view.height/2
 
     magnetic_setup()
+    canvas = app.view
 
-    app.stage.addEventListener('pointerdown',(o)=>{
-        pointerdown_handler(<FederatedPointerEvent>o)
-    })
-
-    app.stage.addEventListener('pointermove',(o)=>{
-        pointermove_handler(<FederatedPointerEvent>o)
-    })
-
-    app.stage.addEventListener('pointerup',(o)=>{
-        pointerup_handler(<FederatedPointerEvent>o)
-    })
-
-    app.stage.addEventListener('pointerupoutside',(o)=>{
-        pointerup_handler(<FederatedPointerEvent>o)
-    })
+    app.view.addEventListener('mousedown',pointerdown_handler)
+    app.view.addEventListener('mouseup',pointerup_handler)
+    app.view.addEventListener('mousemove',pointermove_handler)
+    app.view.addEventListener('mouseleave',pointerup_handler)
+    app.view.addEventListener('touchstart',touchstart_handler)
+    app.view.addEventListener('touchend',touchend_handler)
+    app.view.addEventListener('touchmove',touchmove_handler)
+    app.view.addEventListener('touchcancel',touchcancel_handler)
 
     app.stage.addEventListener('wheel',(o)=>{
         wheel_handler(<FederatedWheelEvent>o)
@@ -73,11 +68,12 @@ export function setup(app:Application){
         }
     })
 
+    touch_setup(app)
+
 }
 
 function wheel_handler(e:FederatedWheelEvent){
-    console.log(e.deltaY)
-    if(!e.ctrlKey){
+    if(e.ctrlKey){
         const rad = Math.PI/36 * (e.deltaY>0?1:-1)
         rotate_view_clockwise(canvas_center,rad)
     }else{
@@ -86,20 +82,27 @@ function wheel_handler(e:FederatedWheelEvent){
     }
 }
 
-function pointerdown_handler(e:FederatedPointerEvent){
-    // console.log('pointer id',e.pointerId)
+export interface MyPointerEvent{
+    ctrlKey: boolean
+    offsetX: number
+    offsetY:number
+}
+
+function pointerdown_handler(e:MouseEvent|MyPointerEvent){
+
+    const offset = {x:e.offsetX,y:e.offsetY}
+
     if(e.ctrlKey){
         is_dragging_view = true
-        start_dragging_view(e.global)
+        start_dragging_view(offset)
         return
     }
 
-    pointer.x = e.global.x
-    pointer.y = e.global.y
+    pointer.x = offset.x
+    pointer.y = offset.y
 
-    if(selected_sprite){
-        release_selected()
-    }
+    release_selected()
+
     const world = to_world_position(pointer)
     const s = get_topmost_clickable(world.x,world.y)
 
@@ -108,28 +111,63 @@ function pointerdown_handler(e:FederatedPointerEvent){
     }
 }
 
-function pointerup_handler(e:FederatedPointerEvent){
-    // console.log('pointer id',e.pointerId)
+function pointerup_handler(e:MouseEvent|MyPointerEvent){
+
     if(is_dragging_view){
         is_dragging_view = false
         return
     }
     sprite_pointerup()
+
 }
 
-function pointermove_handler(e:FederatedPointerEvent){
-    // console.log('pointer id',e.pointerId)
+function pointermove_handler(e:MouseEvent|MyPointerEvent){
 
-    pointer.x = e.global.x
-    pointer.y = e.global.y
+    if(get_current_action()!=TOUCHACTION.NONE){
+        sprite_pointerup()
+        return 
+    }
+
+    const offset = {x:e.offsetX,y:e.offsetY}
+
+    pointer.x = offset.x
+    pointer.y = offset.y
     
     if(is_dragging_view){
-        drag_view(e.global)
+        drag_view(offset)
         return
     }
     
     emit_player_update()
     sprite_pointermove()
+}
+
+
+
+function touchstart_handler(e:TouchEvent){
+    print_log('(i) touchstart '+e.targetTouches.length)
+    if(e.targetTouches.length==1){
+        pointerdown_handler(touch_to_pointer(e.targetTouches[0]))
+    }else if(e.targetTouches.length==2){
+        sprite_pointerup()
+        release_selected()
+    }
+}
+
+function touchmove_handler(e:TouchEvent){
+    if(e.targetTouches.length==1){
+        pointermove_handler(touch_to_pointer(e.targetTouches[0]))
+    }
+}
+
+function touchend_handler(e:TouchEvent){
+    if(e.targetTouches.length==0){
+        pointerup_handler(touch_to_pointer(e.changedTouches[0]))
+    }
+}
+
+function touchcancel_handler(e:TouchEvent){
+    touchend_handler(e)
 }
 
 
@@ -146,8 +184,13 @@ interface ReleaseOwnershipArgs{
     sprite_data:object
 }
 
+function release_dragged(){
+    
+}
+
 function release_selected(){
     const s = selected_sprite
+    if(!s)return
     I().critical_action(
         (ts)=>{
             trigger_event(EVENT.SELECTED_OUT,{sprite:s})
@@ -204,7 +247,6 @@ function sprite_pointermove(){
     dragging_sprite.x = world.x + dragging_offset.x
     dragging_sprite.y = world.y + dragging_offset.y
     const offset = magnetic_offset(dragging_sprite)
-    console.log('magnetic',offset)
     if(offset){
         dragging_sprite.x += offset.x
         dragging_sprite.y += offset.y

@@ -37,7 +37,6 @@ function update_sprites(sprite_pack,selector:string){
         // if(s.owner==player.my_id){
             continue
         }
-        console.log('update',data)
         sprite.update_sprite(s,data,true)
     }
     
@@ -80,14 +79,3 @@ function update_players(player_pack,selector:string){
     })
     
 }
-
-// function populate_players(){
-//     player.for_each_player(
-//         (p,i)=>{
-//         p.sprites.clear()
-//     })
-//     sprite.for_each_sprite(
-//         (s,i)=>{
-//         player.get_player_by_id(s.owner)?.take_sprite(s)
-//     })
-// }

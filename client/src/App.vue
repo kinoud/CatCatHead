@@ -1,21 +1,39 @@
 <script setup lang="ts">
 
-import {ref, onMounted} from 'vue'
+import {ref, onMounted, watch, type Ref} from 'vue'
+import  {useRoute} from 'vue-router'
 import { getCurrentInstance } from 'vue';
-import * as game from './game/game';
-import * as interaction from './game/interaction'
+import * as game from './game/game'
+import * as interaction from './game/interaction/interaction'
 import { my_id } from './game/player';
+import {io} from 'socket.io-client'
 
 const app = getCurrentInstance().proxy
+
+const route = useRoute()
+console.log(route.params)
+const room_id = route.params.room_id
+app['socket'] = io('/',{
+  auth: {
+    room_id: room_id
+  }
+})
+console.log(app['socket'])
 const socket = app['socket']
+
 
 const text_msg = ref('')
 const messages = ref('')
 const game_info = ref('')
+const log_msg = ref('')
 const warning = ref('')
 const name = ref(my_id)
 const selected = ref(false)
 
+watch(game.log_msg,()=>{
+  log_msg.value = game.log_msg.value
+  log_box.value.scrollTop = log_box.value.scrollHeight
+})
 
 function on_input_msg(e){
   text_msg.value = e.target.value
@@ -27,7 +45,6 @@ function send_text(){
     return
   }else{
     warning.value = ''
-    
   }
   socket.emit('my event',{who:my_id,msg:text_msg.value})
   text_msg.value = ''
@@ -46,6 +63,7 @@ function click_flip(){
 const game_div = ref(null)
 
 const msg_box = ref(null)
+const log_box = ref(null)
 
 
 function mouse_wheel_handler(e){
@@ -55,7 +73,10 @@ function mouse_wheel_handler(e){
   return false
 }
 
+
 onMounted(()=>{
+  
+
   game.setup(socket,game_div.value)
 
   game_div.value.addEventListener(
@@ -95,6 +116,7 @@ onMounted(()=>{
 <template>
     <div class="con">
       <textarea class="float-left" rows="20" cols="20" readonly>{{game_info}}</textarea>
+      <textarea ref="log_box" class="float-left" rows="20" cols="20" readonly>{{log_msg}}</textarea>
       <div ref="game_div" class="float-left"></div>
 
       <div class="float-left">

@@ -4,6 +4,7 @@ import type { Application } from "@pixi/app"
 import type { Sprite } from "./sprite";
 import * as sprite from './sprite'
 import { I, my_id as me} from "./player";
+import type { p2d } from "./math_utils";
 
 const layers:Array<Container> = []
 const which_layer:Map<Sprite,number> = new Map
@@ -18,11 +19,11 @@ export function frame_loop(){
     }
 
     const pv = view.pixi
-    pv.x += (view.x-pv.x)*0.1
-    pv.y += (view.y-pv.y)*0.1
+    pv.x += (view.x-pv.x)*0.5
+    pv.y += (view.y-pv.y)*0.5
     pv.rotation += (view.rotation-pv.rotation)*0.1
-    pv.scale.x += (view.scale-pv.scale.x)*0.1
-    pv.scale.y += (view.scale-pv.scale.y)*0.1
+    pv.scale.x += (view.scale-pv.scale.x)*0.5
+    pv.scale.y += (view.scale-pv.scale.y)*0.5
 
 
     sprite.for_each_sprite(s=>{
@@ -108,12 +109,8 @@ interface View{
 
 const view:View = {x:0,y:0,rotation:0,scale:1,pixi:new Container()}
 
-interface P2d{
-    x:number
-    y:number
-}
 
-export function to_world_position(pointer_wrt_canvas:P2d,wrt_pixi=false):P2d{
+export function to_world_position(pointer_wrt_canvas:p2d,wrt_pixi=false):p2d{
     const x = pointer_wrt_canvas.x
     const y = pointer_wrt_canvas.y
     const x0 = wrt_pixi?view.pixi.x:view.x
@@ -125,18 +122,18 @@ export function to_world_position(pointer_wrt_canvas:P2d,wrt_pixi=false):P2d{
     return {x:((x-x0)*cos+(y-y0)*sin)/s,y:(-(x-x0)*sin+(y-y0)*cos)/s}
 }
 
-let offset_dragging:P2d
+let offset_dragging:p2d
 
-export function start_dragging_view(pointer_wrt_canvas:P2d){
+export function start_dragging_view(pointer_wrt_canvas:p2d){
     offset_dragging = {x:view.x - pointer_wrt_canvas.x,y:view.y - pointer_wrt_canvas.y}
 }
 
-export function drag_view(pointer_wrt_canvas:P2d){
+export function drag_view(pointer_wrt_canvas:p2d){
     view.x = pointer_wrt_canvas.x + offset_dragging.x
     view.y = pointer_wrt_canvas.y + offset_dragging.y
 }
 
-export function rotate_vector_clockwise(v:P2d, rad:number){
+export function rotate_vector_clockwise(v:p2d, rad:number){
     const cos = Math.cos(rad)
     const sin = Math.sin(rad)
     const x = v.x*cos-v.y*sin
@@ -145,7 +142,7 @@ export function rotate_vector_clockwise(v:P2d, rad:number){
     v.y = y
 }
 
-export function rotate_view_clockwise(center_wrt_canvas:P2d, delta_rad:number){
+export function rotate_view_clockwise(center_wrt_canvas:p2d, delta_rad:number){
     let offset = {x:view.x-center_wrt_canvas.x,y:view.y-center_wrt_canvas.y}
     rotate_vector_clockwise(offset, delta_rad)
     view.rotation += delta_rad
@@ -153,7 +150,17 @@ export function rotate_view_clockwise(center_wrt_canvas:P2d, delta_rad:number){
     view.y = center_wrt_canvas.y + offset.y
 }
 
-export function scale_view(center_wrt_canvas:P2d, factor:number){
+let init_scale = 1
+
+export function start_scale_view_2(){
+    init_scale = view.scale
+}
+
+export function scale_view_2(center_wrt_canvas:p2d, factor:number){
+    scale_view(center_wrt_canvas, factor*init_scale/view.scale)
+}
+
+export function scale_view(center_wrt_canvas:p2d, factor:number){
     let offset = {x:view.x-center_wrt_canvas.x,
         y:view.y-center_wrt_canvas.y}
     offset.x *= factor

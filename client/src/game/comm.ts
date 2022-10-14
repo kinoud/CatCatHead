@@ -5,14 +5,13 @@ var socket
 export function setup(game_socket){
   socket = game_socket
   socket.on('game init',(res)=>{
-      game.add_player(res.player_info)
-      game.set_player(res.player_info.player_id)
+      game.set_player(res.player_info)
       game.load_resource(res.sprite_sheet)
     })
 
   socket.on('heartbeat',(res)=>{
       // console.log(res)
-      if(!game.loaded){
+      if(!game.resources_loaded){
         return
       }
       game.update(res)

@@ -17,7 +17,8 @@
     "@pixi/filter-outline": "^4.1.5",
     "pixi.js": "^6.4.2",
     "socket.io-client": "^4.5.1",
-    "vue": "^3.2.36"
+    "vue": "^3.2.36",
+    "vue-router": "^4.0.16"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.1.0",

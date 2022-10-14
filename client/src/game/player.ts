@@ -5,9 +5,25 @@ const players:Map<string,Player> = new Map
 
 export var my_id:string
 
+
+export function reset(){
+    remove_player(my_id)
+}
+
+
 export function set_player(id:string){
     my_id = id
 }
+
+class Queue<T>{
+    private data:Array<T> = []
+    push(x:T){this.data.push(x)}
+    pop(){return this.data.shift()}
+    front(){return this.data[0]}
+    empty(){return this.data.length==0}
+    get length(){return this.data.length}
+}
+
 
 export class Player{
     id:string
@@ -16,6 +32,8 @@ export class Player{
     private token:number=0
     private token_locked:boolean=false
     private critical_tries:number=0
+    private critical_queue:Queue<Function> = new Queue
+    private is_queueing = false
 
     constructor(id:string, mouse_sprite_id:string){
         this.id = id
@@ -32,24 +50,34 @@ export class Player{
     }
 
     public critical_action(action:(ts:number)=>void){
-        if(this.token_locked){
-            console.log('ts locked!')
-            this.critical_tries += 1
-            if(this.critical_tries>10){
-                console.log('critical abort!')
-                this.token_locked = false
-                return
-            }
-            setTimeout(() => {
-                this.critical_action(action)   
-            }, 50);
+        this.critical_queue.push(action)
+        console.log('critical enqued ('+this.critical_queue.length+')')
+        if(!this.is_queueing)this.queueing()
+    }
+
+    private queueing(){
+        console.log('queueing...')
+
+        this.critical_tries += 1
+
+        this.is_queueing = true
+        if(this.critical_queue.empty()){
+            this.is_queueing = false
             return
         }
+        if(this.token_locked){
+            setTimeout(this.queueing.bind(this), 50);
+            return
+        }
+
         this.critical_tries = 0
         this.token_locked = true
-        console.log('doing critical',this)
         this.token += 1
+        const action = this.critical_queue.pop()
+
+        console.log('critical dequed ('+this.critical_queue.length+')')
         action(this.token)
+        setTimeout(this.queueing.bind(this),0)
     }
 
     public update(o){
