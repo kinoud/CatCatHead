@@ -9,12 +9,15 @@ RECENT = 'recent'
 class SyncTagger:
     def __init__(self) -> None:
         self.current_tag = 0
+        self.mu = threading.Lock()
         
     def tick(self):
         self.current_tag += 1
     
     def tag(self,x:SyncObject):
+        self.mu.acquire() # about this lock, see issues/001
         x._tag = self.current_tag
+        self.mu.release()
     
     def match(self,x:SyncObject,selector:str):
         if selector==ALL:

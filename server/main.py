@@ -99,17 +99,6 @@ def handel_my_event(o):
     message_list.append((who,msg))
     emit('my response',{'who':who,'msg':msg},broadcast=True)
 
-@app.route('/hello',methods=['GET'])
-def hello():
-    a = request.args.get('who')
-    d = {
-        'yjw':'杨佳文',
-        'zc':'周畅',
-        'gzw':'高志文',
-        'hxy':'胡曦月',
-        'zh':'周航'
-        }
-    return 'hello '+d.get(a,'你谁?')
         
 @socketio.on('get_game_state')
 def get_game_state(args):
@@ -143,8 +132,10 @@ def release_ownership(args):
     '''
     room = current_room()
     game = room.game
-    print(color('release ownership','blue'))
+    print(color(f'release ownership {args["sprite_id"]}','blue'))
     game.release_ownership(args['player_id'],args['sprite_id'],args['ts'],args['sprite_data'])
+    
+    room.gsu.make_sync_ready()
     
 
 if __name__=='__main__':

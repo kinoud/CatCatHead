@@ -197,11 +197,12 @@ function release_selected(){
             outline_off(s)
             s.update_record = ts // to protect sprite
             sprite.update_sprite(s,{owner:'none'})
+            I().critical_release()
             rpc('release_ownership',<ReleaseOwnershipArgs>{
                 player_id:me,sprite_id:s.id,ts:ts,
                 sprite_data:s.meta
             },()=>{
-                I().critical_release()
+                // I().critical_release()
             })
             if(s==selected_sprite){
                 selected_sprite = null

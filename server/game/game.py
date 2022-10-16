@@ -80,9 +80,6 @@ class Game:
             'sprites':self.sprite_manager.net(selector=selector),
             'players':self.player_manager.net(selector=selector),
             }
-
-    def sync_tick(self):
-        self.sync_tagger.tick()
         
 class GameSyncUnit:
     def __init__(self,game:Game,socketio:SocketIO,room_id) -> None:
@@ -95,6 +92,10 @@ class GameSyncUnit:
         threading.Thread(target=self.sync_everything,daemon=True).start()
         
     def make_sync_ready(self):
+        '''
+        When you updates sth and you want these updates to be considered "RECENT" level so that
+        they will be broadcast quickly, you call this function follow your updates.
+        '''
         self.sync_ready_lock.acquire()
         if self.sync_ready._value==0:
             self.sync_ready.release()
@@ -113,12 +114,19 @@ class GameSyncUnit:
         while True:
             print(self,'acquire')
             self.sync_ready.acquire()
+            
+            self.game.sync_tagger.mu.acquire() # about this lock, see issues/001
             self.emit_game_state(selector=ada_sync.RECENT,broadcast=True)
-            self.game.sync_tick()
+            
+            self.game.sync_tagger.tick()
+            self.game.sync_tagger.mu.release()
+            
             time.sleep(0.2)
 
     def sync_everything(self):
         while True:
+            self.game.sync_tagger.mu.acquire() # about this lock, see issues/001
             self.emit_game_state(selector='all',broadcast=True)
-            self.game.sync_tick()
+            self.game.sync_tagger.tick()
+            self.game.sync_tagger.mu.release()
             time.sleep(60)
