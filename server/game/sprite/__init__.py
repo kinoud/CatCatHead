@@ -26,16 +26,10 @@ class Sprite(SyncObject):
         self.rotation =rotation
         self.scale_x = scale_x
         self.scale_y = scale_y
-        self.update_records = dict()
         
     def _update(self,data:dict):
         for attr in data.keys():
             self.__dict__[attr] = data[attr]          
-    
-    def set_update_record(self,who:str,ts:int):
-        old_ts = self.update_records.get(who)
-        assert old_ts is None or old_ts <= ts        
-        self.update_records[who] = ts
         
     def destroy(self):
         self.owner = '_destroyed'
@@ -48,7 +42,6 @@ class Sprite(SyncObject):
             'anchor_y': self.anchor_y,
             'x':self.x,
             'y':self.y,
-            'update_records':self.update_records,
             'z_index':self.z_index,
             'rotation':self.rotation,
             'scale_x':self.scale_x,

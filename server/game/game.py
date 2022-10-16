@@ -68,11 +68,11 @@ class Game:
         ts = data['player']['ts']
         self.manager_sprite_player.update_sprites(data['sprites'],who,ts)
         
-    def claim_ownership(self,player_id:str,sprite_id:str,ts:int):
-        return self.manager_sprite_player.claim_ownership(player_id,sprite_id,ts)
+    def claim_ownership(self,player_id:str,sprite_id:str):
+        return self.manager_sprite_player.claim_ownership(player_id,sprite_id)
 
-    def release_ownership(self,player_id:str,sprite_id:str,ts:int,sprite_data:object):
-        self.manager_sprite_player.release_ownership(player_id,sprite_id,ts,sprite_data)
+    def release_ownership(self,player_id:str,sprite_id:str,sprite_data:object):
+        self.manager_sprite_player.release_ownership(player_id,sprite_id,sprite_data)
         
     def net(self,selector=ada_sync.ALL):
         return {

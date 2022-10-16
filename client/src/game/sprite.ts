@@ -64,11 +64,11 @@ export function remove_sprite(sprite:Sprite){
     trigger_event(EVENT.REMOVE_SPRITE,{sprite:sprite})
 }
 
-export function update_sprite(sprite:Sprite,data,validate_update_records=false){
+export function update_sprite(sprite:Sprite,data){
     const original_data = sprite.meta
-    const accept = sprite.update(data,validate_update_records)
+    const accept = sprite.update(data)
     trigger_event(EVENT.UPDATE_SPRITE,
-        {sprite:sprite,accept:accept,original_data:original_data,data:data,validate_update_records:validate_update_records})
+        {sprite:sprite,accept:accept,original_data:original_data,data:data})
 }
 
 export interface SpriteMeta{
@@ -91,7 +91,6 @@ export class Sprite{
     public y:number
     public anchor_x:number=0.5
     public anchor_y:number=0.5
-    public update_record:number
     public z_index:number=0
     public type:string
     public rotation:number=0
@@ -102,14 +101,7 @@ export class Sprite{
     public magnetics:Array<{x:number,y:number}>
 
 
-    public update(data,validate_update_records=false){
-        if(validate_update_records){
-            if(!this.compare_update_record(data['update_records'][me])){
-                console.log('refuse')
-                return false
-            }
-        }
-        
+    public update(data){
         for(let x in data){
             this[x] = data[x]
         }
@@ -129,12 +121,6 @@ export class Sprite{
         q.x += this.x
         q.y += this.y
         return q
-    }
-
-    public compare_update_record(update_record){
-        const old = this.update_record
-        const upd = update_record
-        return (!old||(upd&&upd>=old))
     }
 
     constructor(pixi:PIXI.Sprite){

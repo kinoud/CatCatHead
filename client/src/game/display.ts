@@ -3,6 +3,7 @@ import { OutlineFilter } from "@pixi/filter-outline";
 import type { Application } from "@pixi/app"
 import type { Sprite } from "./sprite";
 import * as sprite from './sprite'
+import * as interact from './interaction/interaction'
 import { I, my_id as me} from "./player";
 import type { p2d } from "./math_utils";
 
@@ -85,6 +86,15 @@ export function setup(pixiapp:Application){
     sprite.add_listener(sprite.EVENT.UPDATE_SPRITE,e=>{
         if(!e.data.z_index||!e.accept)return
         update_top_z_index(e.sprite)
+    })
+
+    interact.add_listener(interact.EVENT.SELECTED,e=>{
+        sprite.update_sprite(e.sprite,{z_index: top_z_index[layer_index.MID]+1})
+        outline_on(e.sprite)
+    })
+
+    interact.add_listener(interact.EVENT.UNSELECTED,e=>{
+        outline_off(e.sprite)
     })
 }
 

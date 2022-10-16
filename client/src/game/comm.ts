@@ -49,10 +49,19 @@ export function emit_player_update(emergent=false){
   },200)
 }
 
-export function rpc(func:string,args:object,callback:(res:object)=>void=null){
+export function rpc(func:string,args:object,callback:(res:object)=>void=null,timeout:()=>void=()=>{}){
   if(!callback){
     socket.emit(func,args)
   }else{
-    socket.emit(func,args,callback)
+    let done = false
+    socket.emit(func,args,(res)=>{
+      done = true
+      callback(res)
+    })
+    setTimeout(()=>{
+      if(!done){
+        timeout()
+      }
+    }, 3000)
   }
 }

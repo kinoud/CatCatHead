@@ -13,6 +13,27 @@ export function setup(){
     })
 }
 
+const sheltered_sprites:Set<sprite.Sprite> = new Set()
+
+/**
+ * shelter a sprite.
+ * sheltered sprite won't response to any updates from server.
+ * @param s 
+ */
+export function shelter_sprite(s:sprite.Sprite){
+    sheltered_sprites.add(s);
+}
+
+/**
+ * unshelter a sprite.
+ * sheltered sprite won't response to any updates from server.
+ * @param s 
+ */
+export function unshelter_sprite(s:sprite.Sprite){
+    sheltered_sprites.delete(s);
+}
+
+
 export function update(server_data){
     const sprite_pack = server_data.sprites
     const player_pack = server_data.players
@@ -37,7 +58,8 @@ function update_sprites(sprite_pack,selector:string){
         // if(s.owner==player.my_id){
             continue
         }
-        sprite.update_sprite(s,data,true)
+        if(!sheltered_sprites.has(s))
+            sprite.update_sprite(s,data)
     }
     
     if(selector=='all'){

@@ -25,7 +25,7 @@ _room_id = ['123','888']
 _rooms = dict([(x,Room(socketio,x)) for x in _room_id])
 
 
-def current_room():
+def current_room()->Room:
     room_id = current_user.room_id
     return _rooms[room_id]
 
@@ -111,12 +111,12 @@ def claim_ownership(args):
     '''
     args:{
         'player_id':str,
-        'sprite_id':str,
-        'ts':int}
+        'sprite_id':str
+        }
     '''
     room = current_room()
     game = room.game
-    ret = game.claim_ownership(args['player_id'], args['sprite_id'], args['ts'])
+    ret = game.claim_ownership(args['player_id'], args['sprite_id'])
     print(color('claim ownership','red'),'success:',ret)
     return {'success':ret}
     
@@ -127,13 +127,13 @@ def release_ownership(args):
     args:{
         'player_id':str,
         'sprite_id':str,
-        'ts':int,
         'sprite_data':object}
     '''
     room = current_room()
     game = room.game
     print(color(f'release ownership {args["sprite_id"]}','blue'))
-    game.release_ownership(args['player_id'],args['sprite_id'],args['ts'],args['sprite_data'])
+    print(args)
+    game.release_ownership(args['player_id'],args['sprite_id'],args['sprite_data'])
     
     room.gsu.make_sync_ready()
     

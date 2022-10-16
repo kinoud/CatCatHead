@@ -13,6 +13,7 @@ import {setup as touch_setup, TOUCHACTION, get_current_action, touch_to_pointer}
 
 delete Renderer.__plugins.interaction
 
+export const EVENT = {SELECTED_OUT:0,SELECTED:1,UNSELECTED:0}
 const pointer = {x:0,y:0}
 
 export function frame_loop(){
@@ -101,7 +102,7 @@ function pointerdown_handler(e:MouseEvent|MyPointerEvent){
     pointer.x = offset.x
     pointer.y = offset.y
 
-    release_selected()
+    unselect_all_sprites()
 
     const world = to_world_position(pointer)
     const s = get_topmost_clickable(world.x,world.y)
@@ -150,7 +151,7 @@ function touchstart_handler(e:TouchEvent){
         pointerdown_handler(touch_to_pointer(e.targetTouches[0]))
     }else if(e.targetTouches.length==2){
         sprite_pointerup()
-        release_selected()
+        unselect_all_sprites()
     }
 }
 
@@ -171,95 +172,81 @@ function touchcancel_handler(e:TouchEvent){
 }
 
 
-let dragging_sprite:Sprite = null
-const dragging_offset = {x:0,y:0}
+export const dragging_sprites:Set<Sprite> = new Set
+export const dragging_offset = {x:0,y:0}
+export const selected_sprites:Set<Sprite> = new Set
 
-let selected_sprite:Sprite = null
-
-
-interface ReleaseOwnershipArgs{
-    player_id:string
-    sprite_id:string
-    ts:number
-    sprite_data:object
+/**
+ * make a sprite selected in the view of the client.
+ * this function will trigger "EVENT.SELECTED".
+ * @param s 
+ */
+export function select_sprite(s:Sprite){
+    trigger_event(EVENT.SELECTED, {sprite:s})
+    selected_sprites.add(s)
 }
 
-function release_dragged(){
-    
+/**
+ * make a sprite unselected in the view of the client.
+ * trigger "EVENT.SELECTED_OUT".
+ * @param s 
+ */
+export function unselect_sprite(s:Sprite){
+    trigger_event(EVENT.SELECTED_OUT, {sprite:s})
+    selected_sprites.delete(s)
 }
 
-function release_selected(){
-    const s = selected_sprite
-    if(!s)return
-    I().critical_action(
-        (ts)=>{
-            trigger_event(EVENT.SELECTED_OUT,{sprite:s})
-            outline_off(s)
-            s.update_record = ts // to protect sprite
-            sprite.update_sprite(s,{owner:'none'})
-            I().critical_release()
-            rpc('release_ownership',<ReleaseOwnershipArgs>{
-                player_id:me,sprite_id:s.id,ts:ts,
-                sprite_data:s.meta
-            },()=>{
-                // I().critical_release()
-            })
-            if(s==selected_sprite){
-                selected_sprite = null
-            }
-        }
-    )
+export function unselect_all_sprites(){
+    const arr:Array<Sprite> = []
+    selected_sprites.forEach(s=>{arr.push(s)})
+    arr.forEach(s=>{unselect_sprite(s)})
 }
 
 function sprite_pointerdown(s:Sprite,world:{x:number,y:number}){
     if(s.owner!='none'&&s.owner!=me)return
-    
-    selected_sprite = s
-    outline_on(selected_sprite)
-    trigger_event(EVENT.SELECTED,{sprite:s})
-
-    dragging_sprite = s
+    dragging_sprites.add(s)
     dragging_offset.x = s.x-world.x
     dragging_offset.y = s.y-world.y
-
-    sprite.update_sprite(dragging_sprite,{owner:me,z_index:top_z_index[layer_index.MID]+1})
-
-    const ts = I().ts
-    rpc('claim_ownership',{'player_id':me,'sprite_id':s.id,'ts':ts},
-    (res)=>{
-        if(ts<I().ts)return
-        if(!res['success']){
-            if(dragging_sprite==s){
-                dragging_sprite = null
-                sprite.update_sprite(s,{owner:'none'})
-            }
-        }
-    })
+    select_sprite(s)
 }
 
 function sprite_pointerup(){
-    if(!dragging_sprite)return
-    dragging_sprite = null
+    dragging_sprites.clear()
 }
 
 function sprite_pointermove(){
-    if (!dragging_sprite)return
+    if (dragging_sprites.size==0)return
     const world = to_world_position(pointer,true)
-    dragging_sprite.x = world.x + dragging_offset.x
-    dragging_sprite.y = world.y + dragging_offset.y
-    const offset = magnetic_offset(dragging_sprite)
+    let one:Sprite
+    dragging_sprites.forEach(s=>{
+        s.x = world.x + dragging_offset.x
+        s.y = world.y + dragging_offset.y
+        one = s
+    })
+    
+    let offset = null
+    if(dragging_sprites.size==1){
+        offset = magnetic_offset(one)
+    }
+    
     if(offset){
-        dragging_sprite.x += offset.x
-        dragging_sprite.y += offset.y
+        dragging_sprites.forEach(s=>{
+            s.x += offset.x
+            s.y += offset.y
+        })
     }
 }
 
 export function rotate_selected(rad:number){
-    selected_sprite.rotation += rad
+    selected_sprites.forEach(s=>{
+        s.rotation += rad
+    })
 }
 
 export function flip_selected(){
-    selected_sprite.scale_x *= -1
+    selected_sprites.forEach(s=>{
+        s.scale_x *= -1
+    })
 }
 
 
@@ -278,7 +265,7 @@ export function cancel_clickable(s:Sprite){
     clickable_sprites.delete(s)
 }
 
-export const EVENT = {SELECTED_OUT:0,SELECTED:1}
+
 interface Listeners{
     [event:string|number]:Array<Function>
 }
