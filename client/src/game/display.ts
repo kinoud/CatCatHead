@@ -20,11 +20,12 @@ export function frame_loop(){
     }
 
     const pv = view.pixi
-    pv.x += (view.x-pv.x)*0.5
-    pv.y += (view.y-pv.y)*0.5
-    pv.rotation += (view.rotation-pv.rotation)*0.1
-    pv.scale.x += (view.scale-pv.scale.x)*0.5
-    pv.scale.y += (view.scale-pv.scale.y)*0.5
+    const smooth_factor = 0.5
+    pv.x += (view.x-pv.x)*smooth_factor
+    pv.y += (view.y-pv.y)*smooth_factor
+    pv.rotation += (view.rotation-pv.rotation)*smooth_factor
+    pv.scale.x += (view.scale-pv.scale.x)*smooth_factor
+    pv.scale.y += (view.scale-pv.scale.y)*smooth_factor
 
 
     sprite.for_each_sprite(s=>{
@@ -160,6 +161,10 @@ export function rotate_view_clockwise(center_wrt_canvas:p2d, delta_rad:number){
     view.y = center_wrt_canvas.y + offset.y
 }
 
+/**
+ * 双指缩放
+ */
+
 let init_scale = 1
 
 export function start_scale_view_2(){
@@ -168,6 +173,35 @@ export function start_scale_view_2(){
 
 export function scale_view_2(center_wrt_canvas:p2d, factor:number){
     scale_view(center_wrt_canvas, factor*init_scale/view.scale)
+}
+
+/**
+ * 双指旋转
+ */
+
+let init_view_pos = {x:0,y:0};
+let init_view_rotation;
+
+export function start_rotate_view_2(){
+    init_view_pos = {x:view.x, y:view.y};
+    init_view_rotation = view.rotation;
+}
+
+export function rotate_view_clockwise_2(center_wrt_canvas:p2d, delta_rad:number){
+    let offset = {x:init_view_pos.x-center_wrt_canvas.x,y:init_view_pos.y-center_wrt_canvas.y}
+    rotate_vector_clockwise(offset, delta_rad)
+    view.rotation = init_view_rotation + delta_rad
+    view.x = center_wrt_canvas.x + offset.x
+    view.y = center_wrt_canvas.y + offset.y
+}
+
+/**
+ * 把view.rotation四舍五入到rad_mod的整数倍
+ * @param rad_mod 
+ */
+export function round_view_rotation(center_wrt_canvas:p2d, rad_mod:number){
+    let dest_rotation = Math.round(view.rotation/rad_mod)*rad_mod
+    rotate_view_clockwise(center_wrt_canvas, (dest_rotation-view.rotation)%(Math.PI*2))
 }
 
 export function scale_view(center_wrt_canvas:p2d, factor:number){

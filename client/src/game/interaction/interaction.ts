@@ -14,6 +14,7 @@ import {setup as touch_setup, TOUCHACTION, get_current_action, touch_to_pointer}
 delete Renderer.__plugins.interaction
 
 export const EVENT = {SELECTED_OUT:0,SELECTED:1,UNSELECTED:0}
+// 鼠标的世界坐标
 const pointer = {x:0,y:0}
 
 export function frame_loop(){
@@ -75,11 +76,11 @@ export function setup(app:Application){
 
 function wheel_handler(e:FederatedWheelEvent){
     if(e.ctrlKey){
-        const rad = Math.PI/36 * (e.deltaY>0?1:-1)
-        rotate_view_clockwise(canvas_center,rad)
-    }else{
         const factor = 1 + (e.deltaY>0?-0.1:0.1)
         scale_view(canvas_center,factor)
+    }else{
+        const rad = Math.PI/36 * (e.deltaY>0?1:-1)
+        rotate_view_clockwise(pointer,rad)
     }
 }
 

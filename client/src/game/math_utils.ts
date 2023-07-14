@@ -32,6 +32,12 @@ export function p2d_cross(v0:p2d,v1:p2d){
     return v0.x*v1.y - v0.y*v1.x
 }
 
+/**
+ * 从v0转到v1,要逆时针转多少角度
+ * @param v0 
+ * @param v1 
+ * @returns 
+ */
 export function p2d_rad_counterclockwise(v0:p2d,v1:p2d){
     return Math.asin(p2d_cross(v0,v1)/(p2d_len(v0)*p2d_len(v1)+1e-6))
 }

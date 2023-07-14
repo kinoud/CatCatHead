@@ -1,5 +1,12 @@
 import {p2d_add, p2d_distance, p2d_mul, p2d_rad_counterclockwise, p2d_to_string, p2d_vec, type p2d} from '../math_utils'
-import { drag_view, scale_view_2, start_dragging_view, start_scale_view_2 } from "../display"
+import { 
+    drag_view, scale_view_2, 
+    start_dragging_view, 
+    start_scale_view_2, 
+    start_rotate_view_2, 
+    rotate_view_clockwise_2,
+    round_view_rotation
+ } from "../display"
 import {print_log} from '../game'
 import type { Application } from "@pixi/app"
 import type { MyPointerEvent} from './interaction'
@@ -56,7 +63,7 @@ function touchmove_handler(e:TouchEvent){
         }else if(current_action==TOUCHACTION.SCALE){
             scale_view_2(tf.cen,tf.dis/tf_history[0].dis)
         }else if(current_action==TOUCHACTION.ROTATE){
-    
+            rotate_view_clockwise_2(tf_history[0].cen, p2d_rad_counterclockwise(tf_history[0].vec, tf.vec))
         }
     }
 }
@@ -64,11 +71,13 @@ function touchmove_handler(e:TouchEvent){
 function touchend_handler(e:TouchEvent){
     print_log('touchend ' + e.changedTouches.length)
     current_action = TOUCHACTION.NONE
+    round_view_rotation(tf_history[0].cen, Math.PI/180*45)
 }
 
 function touchcancel_handler(e:TouchEvent){
     print_log('touchcancel ' + e.targetTouches.length)
     current_action = TOUCHACTION.NONE
+    round_view_rotation(tf_history[0].cen, Math.PI/180*45)
 }
 
 
@@ -120,7 +129,8 @@ function push_touch_history(tf:Touch2Features){
     let score_rotate = f_deg - f_scale
     let score_trans = f_pos - f_scale - f_deg
 
-    print_log(p2d_to_string(current.cen))
+    // print_log(p2d_to_string(current.cen))
+    // print_log("score_rotate: "+score_rotate)
 
     let max_score = 0
     let act = TOUCHACTION.NONE
@@ -149,10 +159,6 @@ function init_view_manip(){
     }else if(current_action==TOUCHACTION.SCALE){
         start_scale_view_2()
     }else if(current_action==TOUCHACTION.ROTATE){
-
+        start_rotate_view_2()
     }
-}
-
-function change_view_via_touch(){
-    
 }

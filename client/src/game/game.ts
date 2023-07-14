@@ -12,11 +12,12 @@ const resources = PIXI.Loader.shared.resources
 
 export var resources_loaded = false
 
-export const pixiapp = new Application({width:1000,height:700})
+export const pixiapp = new Application({width:1000,height:700,antialias:true})
 
 
 export function setup(socket, div:HTMLDivElement){
     div.appendChild(pixiapp.view)
+    pixiapp.renderer.resize(window.innerWidth, window.innerHeight)
     interaction_setup(pixiapp)
     control_setup()
     comm_setup(socket)
