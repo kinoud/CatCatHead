@@ -88,8 +88,10 @@ export function frame_loop(){
         const p = m.pixi
         p.x = p.x + (m.x-p.x)*0.1
         p.y = p.y + (m.y-p.y)*0.1
-        // m.rotation = -view.rotation // maybe useless
+        m.rotation = -view.rotation
         p.rotation = -view.pixi.rotation
+        m.scale_x = 1/view.scale
+        m.scale_y = 1/view.scale
         p.scale.x = 1/view.pixi.scale.x
         p.scale.y = 1/view.pixi.scale.y
 

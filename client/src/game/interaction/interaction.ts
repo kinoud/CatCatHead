@@ -5,11 +5,12 @@ import { my_id as me, I } from "../player"
 import { emit_player_update, rpc } from "../comm"
 import * as sprite from '../sprite'
 import type {Sprite} from '../sprite'
-import { drag_view, layer_index, outline_off, outline_on, rotate_view_clockwise, scale_view, start_dragging_view, top_z_index, to_world_position, compare_layer_and_z_index } from "../display/display"
+import { drag_view, layer_index, outline_off, outline_on, rotate_view_clockwise, scale_view, start_dragging_view, top_z_index, to_world_position, compare_layer_and_z_index, to_canvas_position } from "../display/display"
 import {magnetic_offset, setup as magnetic_setup} from '../magnetic'
 import {print_log} from '../game'
 import {setup as touch_setup, TOUCHACTION, get_current_action, touch_to_pointer} from './touch'
 import { get_menu_by_id, new_menu, type OperateMenu } from "../display/operate_menu"
+import { p2d_add, p2d_mul, rotate_vector_clockwise } from "../math_utils"
 
 console.log("interaction.ts")
 
@@ -118,7 +119,9 @@ function pointerdown_handler(e:MouseEvent|MyPointerEvent){
     const menu = get_menu_by_id(MENU_SPRITE_OPERATION)
 
     if (s==menu) {
-        menu.click(world.x - menu.x, world.y - menu.y, {selected_sprites: selected_sprites})
+
+        let menu_pos_canvas = to_canvas_position({x: menu.x, y: menu.y},true)
+        menu.click(pointer.x - menu_pos_canvas.x, pointer.y - menu_pos_canvas.y, {selected_sprites: selected_sprites})
         return
     } else {
         menu.visible = false
@@ -310,15 +313,30 @@ function trigger_event(event_type:string|number,e={}){
     listeners[event_type]?.forEach((f)=>{f(e)})
 }
 
+/**
+ * 
+ * @param x 鼠标的世界坐标x
+ * @param y 鼠标的世界坐标y
+ * @returns 
+ */
 function get_topmost_clickable(x:number,y:number):Sprite{
     const candidates:Array<Sprite> = []
     clickable_sprites.forEach(s=>{
         const local_bound = s.pixi.getLocalBounds()
-        const bound = {x:s.pixi.x,y:s.pixi.y,w:local_bound.width,h:local_bound.height}
-        bound.x -= bound.w*s.pixi.anchor.x
-        bound.y -= bound.h*s.pixi.anchor.y
+        let w = local_bound.width
+        let h = local_bound.height
 
-        if(x>=bound.x&&x<=bound.x+bound.w&&y>=bound.y&&y<=bound.y+bound.h){
+        let local_pos = {x:x-s.pixi.x,y:y-s.pixi.y}
+        rotate_vector_clockwise(local_pos, -s.pixi.rotation)
+        // todo 旋转情况下以下代码可能有bug
+        // 在原比例下相对原点的比例
+        local_pos.x *= Math.sign(s.pixi.scale.x)
+        local_pos.y *= Math.sign(s.pixi.scale.y)
+        local_pos.x /= w
+        local_pos.y /= h
+
+        local_pos = p2d_add(local_pos, s.pixi.anchor)
+        if(local_pos.x>0&&local_pos.x<1&&local_pos.y>0&&local_pos.y<1){
             candidates.push(s)
         }
     })
