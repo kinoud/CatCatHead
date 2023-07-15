@@ -32,6 +32,15 @@ export function p2d_cross(v0:p2d,v1:p2d){
     return v0.x*v1.y - v0.y*v1.x
 }
 
+export function rotate_vector_clockwise(v:p2d, rad:number){
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    const x = v.x*cos-v.y*sin
+    const y = v.y*cos+v.x*sin
+    v.x = x
+    v.y = y
+}
+
 /**
  * 从v0转到v1,要逆时针转多少角度
  * @param v0 

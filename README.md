@@ -4,14 +4,18 @@ TODO:
 - ~~旋转,翻转等操作~~
 - ~~素材地图~~
 - ~~独立视角~~
-- 手机视角操作
+- ~~手机视角操作~~
 - 像素级点击测试
 - 自适应大小画面
-- 物品自动对齐
+- ~~物品自动对齐~~
 - 私人物品区
 - 表决
+- 画面内菜单
 
 安装客户端所需依赖
+
+node版本：https://nodejs.org/download/release/v15.14.0/
+
 ```
 cd client
 npm install
@@ -22,6 +26,9 @@ cd client
 npm run dev
 ```
 安装服务器所需依赖
+
+python版本: 3.11.4
+
 ```
 cd server
 pip install -r requirements.txt

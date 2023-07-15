@@ -21,7 +21,7 @@ socketio = SocketIO(app)
 
 login_manager.init_app(app)
 
-_room_id = ['123','888']
+_room_id = ['123']
 _rooms = dict([(x,Room(socketio,x)) for x in _room_id])
 
 
@@ -35,7 +35,7 @@ def load_user(user_id):
 
 @app.route('/')
 def hello_world():
-    return 'hi'
+    return {"hello":"world"}
 
 @socketio.on('connect')
 def handle_connection(auth):

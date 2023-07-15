@@ -1,7 +1,8 @@
 import * as PIXI from 'pixi.js'
-import { my_id as me } from './player'
 import { TextureCache } from '@pixi/utils'
-import {rotate_vector_clockwise} from './display'
+import {rotate_vector_clockwise} from './math_utils'
+
+console.log("sprite.ts")
 
 export const TYPE = {BACKGROUND:'background',MOUSE:'mouse'}
 
@@ -34,7 +35,7 @@ export function new_sprite(id:string,meta:SpriteMeta):Sprite{
         TextureCache[meta.img]
         )
     
-    p.texture.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST
+    p.texture.baseTexture.scaleMode = PIXI.SCALE_MODES.LINEAR
     const s = new Sprite(p)
 
     const magnetics = resources[sprite_sheet].data.frames[meta.img]?.magnetics
@@ -87,8 +88,8 @@ export class Sprite{
     public id:string
 
     public img:string
-    public x:number
-    public y:number
+    public x:number=0
+    public y:number=0
     public anchor_x:number=0.5
     public anchor_y:number=0.5
     public z_index:number=0

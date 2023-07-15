@@ -1,3 +1,6 @@
+/**
+ * 处理手势识别
+ */
 import {p2d_add, p2d_distance, p2d_mul, p2d_rad_counterclockwise, p2d_to_string, p2d_vec, type p2d} from '../math_utils'
 import { 
     drag_view, scale_view_2, 
@@ -6,12 +9,13 @@ import {
     start_rotate_view_2, 
     rotate_view_clockwise_2,
     round_view_rotation
- } from "../display"
+ } from "../display/display"
 import {print_log} from '../game'
 import type { Application } from "@pixi/app"
 import type { MyPointerEvent} from './interaction'
 
 
+console.log("touch.ts")
 export const TOUCHACTION = {TRANS:'trans',ROTATE:'rotate',SCALE:'scale',NONE:'none'}
 
 let canvas:HTMLCanvasElement
@@ -38,6 +42,10 @@ export function touch_to_pointer(touch:Touch):MyPointerEvent{
 
 }
 
+/**
+ * 处理手势识别
+ * @param e 
+ */
 function touchstart_handler(e:TouchEvent){
     print_log('touchstart ' + e.targetTouches.length)
     const n = e.targetTouches.length
@@ -48,6 +56,10 @@ function touchstart_handler(e:TouchEvent){
     }
 }
 
+/**
+ * 处理手势识别
+ * @param e 
+ */
 function touchmove_handler(e:TouchEvent){
     print_log('touchmove ' + e.targetTouches.length)
     const n = e.targetTouches.length
@@ -68,12 +80,20 @@ function touchmove_handler(e:TouchEvent){
     }
 }
 
+/**
+ * 处理手势识别
+ * @param e 
+ */
 function touchend_handler(e:TouchEvent){
     print_log('touchend ' + e.changedTouches.length)
     current_action = TOUCHACTION.NONE
     round_view_rotation(tf_history[0].cen, Math.PI/180*45)
 }
 
+/**
+ * 处理手势识别
+ * @param e 
+ */
 function touchcancel_handler(e:TouchEvent){
     print_log('touchcancel ' + e.targetTouches.length)
     current_action = TOUCHACTION.NONE

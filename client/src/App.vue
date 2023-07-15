@@ -114,25 +114,25 @@ onMounted(()=>{
 </script>
 
 <template>
-    <div class="con">
-      <textarea class="float-left" rows="20" cols="20" readonly>{{game_info}}</textarea>
-      <textarea ref="log_box" class="float-left" rows="20" cols="20" readonly>{{log_msg}}</textarea>
-      <div ref="game_div" class="float-left"></div>
-
-      <div class="float-left">
-        <button @click="click_left_rotate" :disabled="!selected">↓o</button>
-        <button @click="click_right_rotate" :disabled="!selected">o↓</button>
-        <button @click="click_flip" :disabled="!selected">翻转</button>
-        <div>
-          <textarea ref="msg_box" rows="10" cols="30" readonly>{{messages}}</textarea>
-        </div>
-        {{name}}:
-        <input :value="text_msg" placeholder="输入聊天消息" v-on:input="on_input_msg" @keydown.enter="send_text">
-        <button v-on:click="send_text">发送</button>
-        <p>{{warning}}</p>
+  <div ref="game_div" class="float-left" style="cursor: none;"></div>
+  <div class="con" style="display: none;">
+    
+    <textarea class="float-left" rows="20" cols="20" readonly>{{game_info}}</textarea>
+    <textarea ref="log_box" class="float-left" rows="20" cols="20" readonly style="display: none;">{{log_msg}}</textarea>
+    <div class="float-left" >
+      <button @click="click_left_rotate" :disabled="!selected">↓o</button>
+      <button @click="click_right_rotate" :disabled="!selected">o↓</button>
+      <button @click="click_flip" :disabled="!selected">翻转</button>
+      <div>
+        <textarea ref="msg_box" rows="10" cols="30" readonly>{{messages}}</textarea>
       </div>
-
+      {{name}}:
+      <input :value="text_msg" placeholder="输入聊天消息" v-on:input="on_input_msg" @keydown.enter="send_text">
+      <button v-on:click="send_text">发送</button>
+      <p>{{warning}}</p>
     </div>
+
+  </div>
   
 </template>
 
@@ -143,8 +143,13 @@ onMounted(()=>{
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
 }
+
+body{
+  margin: 0;
+}
+
+
 
 .float-left{
   float: left;

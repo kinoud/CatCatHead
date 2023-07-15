@@ -1,13 +1,16 @@
 import * as PIXI from 'pixi.js'
 import { Application } from "@pixi/app"
-import { setup as interaction_setup, frame_loop as interaction_loop } from './interaction/interaction'
+import { setup as interaction_setup, frame_loop as interaction_loop, register_listeners as interaction_register_listeners } from './interaction/interaction'
 import { rpc, setup as comm_setup } from './comm'
 import * as player from './player'
-import { frame_loop as display_loop, setup as display_setup } from './display'
+import { frame_loop as display_loop, setup as display_setup, register_listeners as display_register_listeners } from './display/display'
 import { update as update_sprite_player, setup as sprite_player_setup} from './state_update'
 import {setup as control_setup} from './control'
 import { set_sprite_sheet } from './sprite'
 import { ref } from 'vue'
+
+console.log("game.ts")
+
 const resources = PIXI.Loader.shared.resources
 
 export var resources_loaded = false
@@ -17,11 +20,23 @@ export const pixiapp = new Application({width:1000,height:700,antialias:true})
 
 export function setup(socket, div:HTMLDivElement){
     div.appendChild(pixiapp.view)
+
+
+    window.addEventListener("resize", ()=>{
+        pixiapp.renderer.resize(window.innerWidth, window.innerHeight)
+    })
     pixiapp.renderer.resize(window.innerWidth, window.innerHeight)
-    interaction_setup(pixiapp)
+
+    interaction_register_listeners()
+    display_register_listeners()
+    
+    // register listeners 全部完成后再 setup
+
     control_setup()
     comm_setup(socket)
     display_setup(pixiapp)
+    interaction_setup(pixiapp)
+    
     sprite_player_setup()
     game_loop()
 }

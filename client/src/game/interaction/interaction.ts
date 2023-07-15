@@ -5,11 +5,13 @@ import { my_id as me, I } from "../player"
 import { emit_player_update, rpc } from "../comm"
 import * as sprite from '../sprite'
 import type {Sprite} from '../sprite'
-import { drag_view, layer_index, outline_off, outline_on, rotate_view_clockwise, scale_view, start_dragging_view, top_z_index, to_world_position } from "../display"
+import { drag_view, layer_index, outline_off, outline_on, rotate_view_clockwise, scale_view, start_dragging_view, top_z_index, to_world_position, compare_layer_and_z_index } from "../display/display"
 import {magnetic_offset, setup as magnetic_setup} from '../magnetic'
 import {print_log} from '../game'
 import {setup as touch_setup, TOUCHACTION, get_current_action, touch_to_pointer} from './touch'
+import { get_menu_by_id, new_menu, type OperateMenu } from "../display/operate_menu"
 
+console.log("interaction.ts")
 
 delete Renderer.__plugins.interaction
 
@@ -33,19 +35,21 @@ let is_dragging_view:boolean = false
 const canvas_center = {x:0,y:0}
 let canvas:HTMLCanvasElement
 
+const MENU_SPRITE_OPERATION = "menu_sprite_operation"
+
+export function register_listeners(){
+    sprite.add_listener(sprite.EVENT.NEW_SPRITE,e=>{
+        const s:Sprite = e.sprite
+        console.log('new sprite',s.type)
+        if(s.type==sprite.TYPE.MOUSE || s.type==sprite.TYPE.BACKGROUND){
+            cancel_clickable(s)
+        }else{
+            make_clickable(s)
+        }
+    })
+}
+
 export function setup(app:Application){
-    app.stage.interactive = true
-    app.stage.hitArea = app.renderer.screen;
-    app.stage.sortableChildren = true
-    const {renderer} = app
-
-    renderer.addSystem(EventSystem, 'events')
-
-    canvas_center.x = app.view.width/2
-    canvas_center.y = app.view.height/2
-
-    magnetic_setup()
-    canvas = app.view
 
     app.view.addEventListener('mousedown',pointerdown_handler)
     app.view.addEventListener('mouseup',pointerup_handler)
@@ -59,16 +63,24 @@ export function setup(app:Application){
     app.stage.addEventListener('wheel',(o)=>{
         wheel_handler(<FederatedWheelEvent>o)
     },)
+    app.stage.interactive = true
+    app.stage.hitArea = app.renderer.screen;
+    app.stage.sortableChildren = true
+    const {renderer} = app
 
-    sprite.add_listener(sprite.EVENT.NEW_SPRITE,e=>{
-        const s:Sprite = e.sprite
-        console.log('new sprite',s.type)
-        if(s.type==sprite.TYPE.MOUSE || s.type==sprite.TYPE.BACKGROUND){
-            cancel_clickable(s)
-        }else{
-            make_clickable(s)
-        }
-    })
+    renderer.addSystem(EventSystem, 'events')
+
+    canvas_center.x = app.view.width/2
+    canvas_center.y = app.view.height/2
+
+    magnetic_setup()
+    canvas = app.view
+
+    
+    let menu_sprite_operation = new_menu(MENU_SPRITE_OPERATION)
+    menu_sprite_operation.add_callback("↶",()=>{rotate_selected(-Math.PI/2)})
+    menu_sprite_operation.add_callback("↷",()=>{rotate_selected(Math.PI/2)})
+    menu_sprite_operation.add_callback("⇄",()=>{flip_selected()})
 
     touch_setup(app)
 
@@ -93,23 +105,35 @@ export interface MyPointerEvent{
 function pointerdown_handler(e:MouseEvent|MyPointerEvent){
 
     const offset = {x:e.offsetX,y:e.offsetY}
-
-    if(e.ctrlKey){
-        is_dragging_view = true
-        start_dragging_view(offset)
-        return
-    }
-
     pointer.x = offset.x
     pointer.y = offset.y
-
-    unselect_all_sprites()
-
     const world = to_world_position(pointer)
     const s = get_topmost_clickable(world.x,world.y)
 
+    if(e.ctrlKey||s==null){
+        is_dragging_view = true
+        start_dragging_view(offset)
+    }
+
+    const menu = get_menu_by_id(MENU_SPRITE_OPERATION)
+
+    if (s==menu) {
+        menu.click(world.x - menu.x, world.y - menu.y, {selected_sprites: selected_sprites})
+        return
+    } else {
+        menu.visible = false
+        cancel_clickable(menu)
+        unselect_all_sprites()
+    }
+    
     if(s){
         sprite_pointerdown(s,world)
+        const menu = get_menu_by_id(MENU_SPRITE_OPERATION)
+        menu.visible = true
+        const menu_world_pos = to_world_position({x:pointer.x+30,y:pointer.y+30},true)
+        menu.x = menu_world_pos.x
+        menu.y = menu_world_pos.y
+        make_clickable(menu)
     }
 }
 
@@ -127,7 +151,6 @@ function pointermove_handler(e:MouseEvent|MyPointerEvent){
 
     if(get_current_action()!=TOUCHACTION.NONE){
         sprite_pointerup()
-        return 
     }
 
     const offset = {x:e.offsetX,y:e.offsetY}
@@ -150,16 +173,15 @@ function touchstart_handler(e:TouchEvent){
     print_log('(i) touchstart '+e.targetTouches.length)
     if(e.targetTouches.length==1){
         pointerdown_handler(touch_to_pointer(e.targetTouches[0]))
-    }else if(e.targetTouches.length==2){
+    }else{
         sprite_pointerup()
         unselect_all_sprites()
+        pointermove_handler(touch_to_pointer(e.targetTouches[0]))
     }
 }
 
 function touchmove_handler(e:TouchEvent){
-    if(e.targetTouches.length==1){
-        pointermove_handler(touch_to_pointer(e.targetTouches[0]))
-    }
+    pointermove_handler(touch_to_pointer(e.targetTouches[0]))
 }
 
 function touchend_handler(e:TouchEvent){
@@ -224,6 +246,10 @@ function sprite_pointermove(){
         s.y = world.y + dragging_offset.y
         one = s
     })
+    const menu = get_menu_by_id(MENU_SPRITE_OPERATION)
+    const menu_world_pos = to_world_position({x:pointer.x+30,y:pointer.y+30},true)
+    menu.x = menu_world_pos.x
+    menu.y = menu_world_pos.y
     
     let offset = null
     if(dragging_sprites.size==1){
@@ -287,8 +313,8 @@ function trigger_event(event_type:string|number,e={}){
 function get_topmost_clickable(x:number,y:number):Sprite{
     const candidates:Array<Sprite> = []
     clickable_sprites.forEach(s=>{
-        const bound = {x:s.pixi.x,y:s.pixi.y,w:s.pixi.width,h:s.pixi.height}
-
+        const local_bound = s.pixi.getLocalBounds()
+        const bound = {x:s.pixi.x,y:s.pixi.y,w:local_bound.width,h:local_bound.height}
         bound.x -= bound.w*s.pixi.anchor.x
         bound.y -= bound.h*s.pixi.anchor.y
 
@@ -299,7 +325,7 @@ function get_topmost_clickable(x:number,y:number):Sprite{
     if(candidates.length==0)return null
     let topmost = candidates[0]
     for(let i=1;i<candidates.length;i++){
-        if(candidates[i].pixi.zIndex>topmost.pixi.zIndex){
+        if (compare_layer_and_z_index(topmost, candidates[i])){
             topmost = candidates[i]
         }
     }
